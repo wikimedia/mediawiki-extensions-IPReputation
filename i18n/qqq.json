@@ -4,5 +4,6 @@
 			"Kosta Harlan"
 		]
 	},
-	"ipreputation-desc": "{{desc|name=IPReputation|url=https://www.mediawiki.org/wiki/Extension:IPReputation}}"
+	"ipreputation-desc": "{{desc|name=IPReputation|url=https://www.mediawiki.org/wiki/Extension:IPReputation}}",
+	"ipreputation-blocked-ip-reputation": "Error message when an action is blocked due to IP reputation reasons."
 }

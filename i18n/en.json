@@ -4,5 +4,6 @@
 			"Kosta Harlan"
 		]
 	},
-	"ipreputation-desc": "Provide access for fetching, logging, and acting on IP reputation data."
+	"ipreputation-desc": "Provide access for fetching, logging, and acting on IP reputation data.",
+	"ipreputation-blocked-ip-reputation": "The IP address that you are currently using has been blocked because it is believed to be recently used for abusive purposes."
 }
