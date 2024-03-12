@@ -1,0 +1,22 @@
+{
+	"name": "IPReputation",
+	"author": [
+		"Kosta Harlan"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:IPReputation",
+	"descriptionmsg": "ipreputation-desc",
+	"license-name": "GPL-2.0-or-later",
+	"type": "other",
+	"requires": {
+		"MediaWiki": ">= 1.42"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\IPReputation\\": ""
+	},
+	"MessagesDirs": {
+		"IPReputation": [
+			"i18n"
+		]
+	},
+	"manifest_version": 2
+}

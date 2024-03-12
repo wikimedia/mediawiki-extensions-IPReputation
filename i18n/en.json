@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Kosta Harlan"
+		]
+	},
+	"ipreputation-desc": "Provide access for fetching, logging, and acting on IP reputation data."
+}
