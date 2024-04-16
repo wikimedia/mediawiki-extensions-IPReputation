@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"ipreputation-desc": "Forni le accesso necessari pro recuperar, registrar e tractar datos de reputation de adresse IP.",
+	"ipreputation-blocked-ip-reputation": "Le adresse IP que tu usa actualmente ha essite blocate perque es credite que illo ha recentemente essite usate a fines abusive."
+}

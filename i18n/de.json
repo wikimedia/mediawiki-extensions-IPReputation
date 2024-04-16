@@ -1,0 +1,7 @@
+{
+	"@metadata": {
+		"authors": []
+	},
+	"ipreputation-desc": "Zugang zum Abrufen, Protokollieren und Verarbeiten von IP-Reputationsdaten.",
+	"ipreputation-blocked-ip-reputation": "Die von dir derzeit verwendete IP-Adresse wurde gesperrt, da angenommen wird, dass sie kürzlich für missbräuchliche Zwecke verwendet wurde."
+}
