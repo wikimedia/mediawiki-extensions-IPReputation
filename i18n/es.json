@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Eulalio"
+		]
+	},
+	"ipreputation-desc": "Proporcione acceso para recuperar, registrar y actuar sobre datos de reputación de IP.",
+	"ipreputation-blocked-ip-reputation": "Se ha bloqueado la dirección IP que está utilizando actualmente porque se cree que se utilizó recientemente con fines abusivos."
+}
