@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"McDutchie"
+		]
+	},
+	"ipreputation-desc": "Biedt toegang voor het ophalen, loggen en gebruiken van IP-reputatiegegevens.",
+	"ipreputation-blocked-ip-reputation": "Het IP-adres dat u momenteel gebruikt, is geblokkeerd omdat wordt aangenomen dat het onlangs voor onrechtmatige doeleinden is gebruikt."
+}
