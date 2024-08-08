@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Toliño"
+		]
+	},
+	"ipreputation-desc": "Proporciona acceso para pescudar, rexistrar e actuar sobre datos de reputación de enderezos IP.",
+	"ipreputation-blocked-ip-reputation": "O enderezo IP que estás a usar actualmente bloqueouse porque se utilizou recentemente con fins abusivos."
+}
