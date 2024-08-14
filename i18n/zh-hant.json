@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Kly"
+		]
+	},
+	"ipreputation-desc": "提供取得、記錄、和操作 IP 信譽資料的存取權限。",
+	"ipreputation-blocked-ip-reputation": "您目前使用的 IP 位址遭到封鎖，因為此位址近期似乎有濫用的行為。"
+}
