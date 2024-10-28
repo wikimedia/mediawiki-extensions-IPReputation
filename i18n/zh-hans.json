@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"沈澄心"
+		]
+	},
+	"ipreputation-desc": "提供获取、记录和处理IP信誉数据的访问权限。",
+	"ipreputation-blocked-ip-reputation": "您当前使用的IP地址已被封禁，因为该地址据信近期被用于滥用目的。"
+}
