@@ -1,8 +1,10 @@
 {
 	"@metadata": {
 		"authors": [
+			"Mahabarata",
 			"SleaY"
 		]
 	},
+	"ipreputation-desc": "Fournir un accès pour la récupération, la journalisation et l'action sur les données de réputation IP.",
 	"ipreputation-blocked-ip-reputation": "L'adresse IP que vous utilisez actuellement a été bloquée car elle a été récemment utilisée à des fins abusives."
 }
