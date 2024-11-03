@@ -187,8 +187,7 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 					// If not a 404, log it, so we can figure out what happened.
 					if ( $request->getStatus() !== 404 ) {
 						$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
-						[ $errorText, $context ] = $statusFormatter->getPsr3MessageAndContext( $response );
-						$this->logger->error( $errorText, $context );
+						$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response ) );
 					}
 
 					return null;
