@@ -2,7 +2,6 @@
 
 namespace MediaWiki\Extension\IPReputation;
 
-use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Api\ApiMessage;
 use MediaWiki\Auth\AbstractPreAuthenticationProvider;
 use MediaWiki\Context\RequestContext;
@@ -11,9 +10,11 @@ use MediaWiki\Language\FormatterFactory;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\WikiMap\WikiMap;
 use StatusValue;
 use Wikimedia\IPUtils;
 use Wikimedia\ObjectCache\WANObjectCache;
+use Wikimedia\Stats\StatsFactory;
 
 /**
  * PreAuthentication provider that checks if an IP address is known to IPoid
@@ -23,7 +24,7 @@ use Wikimedia\ObjectCache\WANObjectCache;
 class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 
 	private HttpRequestFactory $httpRequestFactory;
-	private StatsdDataFactoryInterface $statsDataFactory;
+	private StatsFactory $statsFactory;
 	private WANObjectCache $cache;
 	private FormatterFactory $formatterFactory;
 	private PermissionManager $permissionManager;
@@ -32,13 +33,13 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 		FormatterFactory $formatterFactory,
 		HttpRequestFactory $httpRequestFactory,
 		WANObjectCache $cache,
-		StatsdDataFactoryInterface $statsDataFactory,
+		StatsFactory $statsFactory,
 		PermissionManager $permissionManager
 	) {
 		$this->formatterFactory = $formatterFactory;
 		$this->httpRequestFactory = $httpRequestFactory;
 		$this->cache = $cache;
-		$this->statsDataFactory = $statsDataFactory;
+		$this->statsFactory = $statsFactory;
 		$this->permissionManager = $permissionManager;
 		$this->logger = LoggerFactory::getInstance( 'IPReputation' );
 	}
@@ -133,8 +134,16 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 				]
 			);
 
-			$statsdKey = $shouldLogOnly ? 'DenyAccountCreationLogOnly' : 'DenyAccountCreation';
-			$this->statsDataFactory->increment( "IPReputation.$statsdKey." . implode( '_', $risks ) );
+			$metric = $this->statsFactory->withComponent( 'IPReputation' )
+				->getCounter( 'deny_account_creation' )
+				->setLabel( 'wiki', WikiMap::getCurrentWikiId() )
+				->setLabel( 'log_only', $shouldLogOnly ? '1' : '0' );
+			foreach ( $risks as $risk ) {
+				// ::setLabel only takes strings, so we cannot pass the array of risks in one call. Separating the
+				// risks such that each risk is a different label should also allow better filtering over
+				$metric->setLabel( 'risk_' . strtolower( $risk ), '1' );
+			}
+			$metric->increment();
 
 			if ( $shouldLogOnly ) {
 				return StatusValue::newGood();

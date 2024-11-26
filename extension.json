@@ -63,7 +63,7 @@
 					"FormatterFactory",
 					"HttpRequestFactory",
 					"MainWANObjectCache",
-					"PerDbNameStatsdDataFactory",
+					"StatsFactory",
 					"PermissionManager"
 				],
 				"sort": 0

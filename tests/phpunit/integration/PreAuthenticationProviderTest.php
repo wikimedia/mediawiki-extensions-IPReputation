@@ -9,12 +9,14 @@ use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Request\WebRequest;
 use MediaWiki\Tests\Unit\Auth\AuthenticationProviderTestTrait;
 use MediaWiki\User\User;
+use MediaWiki\WikiMap\WikiMap;
 use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
 use MWHttpRequest;
 use StatusValue;
 use Wikimedia\ObjectCache\HashBagOStuff;
 use Wikimedia\ObjectCache\WANObjectCache;
+use Wikimedia\Stats\Metrics\CounterMetric;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\PreAuthenticationProvider
@@ -23,6 +25,58 @@ use Wikimedia\ObjectCache\WANObjectCache;
 class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 	use MockHttpTrait;
 	use AuthenticationProviderTestTrait;
+
+	private function getObjectUnderTest( $overrides = [] ): PreAuthenticationProvider {
+		return new PreAuthenticationProvider(
+			$overrides['formatterFactory'] ?? $this->getServiceContainer()->getFormatterFactory(),
+			$overrides['httpRequestFactory'] ?? $this->getServiceContainer()->getHttpRequestFactory(),
+			$overrides['cache'] ?? new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
+			$overrides['statsFactory'] ?? $this->getServiceContainer()->getStatsFactory(),
+			$overrides['permissionManager'] ?? $this->getServiceContainer()->getPermissionManager()
+		);
+	}
+
+	/**
+	 * Convenience function to assert that the per-wiki IPReputation counter was incremented exactly once.
+	 *
+	 * @param string[] $expectedLabels Optional list of additional expected label values.
+	 * @return void
+	 */
+	private function assertCounterIncremented( array $expectedLabels = [] ): void {
+		$metric = $this->getServiceContainer()
+			->getStatsFactory()
+			->withComponent( 'IPReputation' )
+			->getCounter( 'deny_account_creation' );
+
+		$samples = $metric->getSamples();
+
+		$this->assertInstanceOf( CounterMetric::class, $metric );
+		$this->assertSame( 1, $metric->getSampleCount() );
+		$this->assertSame( 1.0, $samples[0]->getValue() );
+
+		$wikiId = WikiMap::getCurrentWikiId();
+		$expectedLabels = array_merge(
+			[ 'wiki' => rtrim( strtr( $wikiId, [ '-' => '_' ] ), '_' ) ],
+			$expectedLabels
+		);
+
+		$actualLabels = array_combine( $metric->getLabelKeys(), $samples[0]->getLabelValues() );
+		$this->assertSame( $expectedLabels, $actualLabels );
+	}
+
+	/**
+	 * Convenience function to assert that the IPReputation metric counter was not incremented.
+	 * @return void
+	 */
+	private function assertCounterNotIncremented(): void {
+		$metric = $this->getServiceContainer()
+			->getStatsFactory()
+			->withComponent( 'IPReputation' )
+			->getCounter( 'deny_account_creation' );
+
+		$this->assertInstanceOf( CounterMetric::class, $metric );
+		$this->assertSame( 0, $metric->getSampleCount() );
+	}
 
 	public function testTestForAccountCreationDenyIfIPMatchButNoRisksOrTunnels() {
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
@@ -36,13 +90,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -66,6 +114,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return fatal status if IP matches'
 		);
+		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_unknown' => '1' ] );
 	}
 
 	public function testTestForAccountCreationMalformedData() {
@@ -80,13 +129,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -107,6 +150,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return good status if malformed data'
 		);
+		$this->assertCounterNotIncremented();
 	}
 
 	public function testTestForAccountCreationIPNotInData() {
@@ -121,13 +165,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -148,6 +186,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return good status if IP is not in returned data'
 		);
+		$this->assertCounterNotIncremented();
 	}
 
 	public function testTestForAccountCreationTunnelType() {
@@ -165,13 +204,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -195,6 +228,49 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return bad status if IP is a proxy tunnel and configured to deny those types.'
 		);
+		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_tunnel' => '1' ] );
+	}
+
+	public function testTestForAccountCreationTunnelTypeButLogOnly() {
+		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
+		$status = new StatusValue();
+		$status->setOK( true );
+		$mwHttpRequest->method( 'execute' )
+			->willReturn( $status );
+		$ip = '1.2.3.4';
+		$mwHttpRequest->method( 'getContent' )
+			->willReturn( json_encode( [ '1.2.3.4' => [
+				'risks' => [ 'TUNNEL' ],
+				'tunnels' => [ 'PROXY' ]
+			] ] ) );
+		$this->installMockHttp( $mwHttpRequest );
+		$request = $this->createMock( WebRequest::class );
+		$request->method( 'getIP' )->willReturn( $ip );
+		$provider = $this->getObjectUnderTest();
+		$authManager = $this->createMock( AuthManager::class );
+		$authManager->method( 'getRequest' )->willReturn( $request );
+		$this->initProvider(
+			$provider,
+			new HashConfig( [
+				'IPReputationIPoidCheckAtAccountCreation' => true,
+				'IPReputationIPoidUrl' => 'http://localhost:6035',
+				'IPReputationIPoidRequestTimeoutSeconds' => 2,
+				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL' ],
+				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
+				'IPReputationIPoidCheckAtAccountCreationLogOnly' => true,
+			] ),
+			null,
+			$authManager
+		);
+		$this->assertStatusGood(
+			$provider->testForAccountCreation(
+				$this->createMock( User::class ),
+				$this->createMock( User::class ),
+				[]
+			),
+			'Should return a good status if IPReputation is set to log only and not block account creation.'
+		);
+		$this->assertCounterIncremented( [ 'log_only' => '1', 'risk_tunnel' => '1' ] );
 	}
 
 	public function testTestForAccountCreationTunnelTypeAllowVPNIfDesired() {
@@ -212,13 +288,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -242,6 +312,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return good status if IP is a VPN tunnel and app is configured to block only proxies.'
 		);
+		$this->assertCounterNotIncremented();
 	}
 
 	public function testTestForAccountCreationRiskTypesConfig() {
@@ -259,13 +330,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( $ip );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -289,6 +354,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return bad status if IP matches configured risk types'
 		);
+		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_geo_mismatch' => '1', 'risk_tunnel' => '1' ] );
 	}
 
 	public function testTestForAccountCreationDoNothingWithoutIPoidUrl() {
@@ -298,13 +364,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$request->method( 'getIP' )->willReturn( '127.0.0.1' );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$httpRequestFactory,
-			$this->getServiceContainer()->getMainWANObjectCache(),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
 		$this->initProvider(
 			$provider,
 			new HashConfig( [
@@ -322,18 +382,13 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Do nothing if IPoid URL is not set'
 		);
+		$this->assertCounterNotIncremented();
 	}
 
 	public function testTestForAccountCreationDoNothingWithoutFeatureFlag() {
 		$httpRequestFactory = $this->createMock( HttpRequestFactory::class );
 		$httpRequestFactory->expects( $this->never() )->method( 'request' );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$httpRequestFactory,
-			$this->getServiceContainer()->getMainWANObjectCache(),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
 		$this->initProvider(
 			$provider,
 			new HashConfig( [
@@ -349,6 +404,30 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Do nothing if feature flag is off'
 		);
+		$this->assertCounterNotIncremented();
+	}
+
+	public function testTestForAccountCreationDoNothingIfCreatorHasIPBlockExempt() {
+		$httpRequestFactory = $this->createMock( HttpRequestFactory::class );
+		$httpRequestFactory->expects( $this->never() )->method( 'request' );
+		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
+		$this->initProvider(
+			$provider,
+			new HashConfig( [
+				'IPReputationIPoidCheckAtAccountCreation' => true,
+				'IPReputationIPoidUrl' => 'http://localhost:6035',
+			] )
+		);
+		$creator = $this->getTestUser( [ 'sysop' ] )->getUser();
+		$this->assertStatusGood(
+			$provider->testForAccountCreation(
+				$this->createMock( User::class ),
+				$creator,
+				[]
+			),
+			'Do nothing if the creator has the ipblock-exempt right.'
+		);
+		$this->assertCounterNotIncremented();
 	}
 
 	public function testTestForAccountCreationDoNothingIfIPoidHasNoMatch() {
@@ -360,13 +439,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( '1.2.3.4' );
-		$provider = new PreAuthenticationProvider(
-			$this->getServiceContainer()->getFormatterFactory(),
-			$this->getServiceContainer()->getHttpRequestFactory(),
-			new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
-			$this->getServiceContainer()->getPerDbNameStatsdDataFactory(),
-			$this->getServiceContainer()->getPermissionManager()
-		);
+		$provider = $this->getObjectUnderTest();
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -387,5 +460,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Do nothing if IPoid has no match'
 		);
+		$this->assertCounterNotIncremented();
 	}
 }
