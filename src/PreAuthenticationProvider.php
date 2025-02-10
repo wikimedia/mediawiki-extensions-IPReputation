@@ -11,6 +11,7 @@ use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\WikiMap\WikiMap;
+use RuntimeException;
 use StatusValue;
 use Wikimedia\IPUtils;
 use Wikimedia\ObjectCache\WANObjectCache;
@@ -198,7 +199,9 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 					// If not a 404, log it, so we can figure out what happened.
 					if ( $request->getStatus() !== 404 ) {
 						$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
-						$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response ) );
+						$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
+							'exception' => new RuntimeException(),
+						] ) );
 					}
 
 					return null;
