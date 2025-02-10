@@ -41,7 +41,6 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 		$this->cache = $cache;
 		$this->statsFactory = $statsFactory;
 		$this->permissionManager = $permissionManager;
-		$this->logger = LoggerFactory::getInstance( 'IPReputation' );
 	}
 
 	/** @inheritDoc */
@@ -59,6 +58,9 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 		) {
 			return StatusValue::newGood();
 		}
+
+		// Override $this->logger to use the IPReputation channel (T385300).
+		$this->logger = LoggerFactory::getInstance( 'IPReputation' );
 
 		$ip = $this->manager->getRequest()->getIP();
 
