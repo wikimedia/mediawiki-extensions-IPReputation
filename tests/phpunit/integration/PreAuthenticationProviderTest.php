@@ -18,7 +18,6 @@ use Wikimedia\Stats\Metrics\CounterMetric;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\PreAuthenticationProvider
- * @covers \MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup
  * @group Database
  */
 class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
