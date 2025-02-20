@@ -60,9 +60,7 @@
 			"IPReputationPreAuthenticationProvider": {
 				"class": "MediaWiki\\Extension\\IPReputation\\PreAuthenticationProvider",
 				"services": [
-					"FormatterFactory",
-					"HttpRequestFactory",
-					"MainWANObjectCache",
+					"IPReputationIPoidDataLookup",
 					"StatsFactory",
 					"PermissionManager"
 				],
@@ -70,5 +68,8 @@
 			}
 		}
 	},
+	"ServiceWiringFiles": [
+		"src/ServiceWiring.php"
+	],
 	"manifest_version": 2
 }

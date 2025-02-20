@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\IPReputation\Tests\Phpunit\Integration;
+namespace MediaWiki\Extension\IPReputation\Tests\Integration;
 
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\HashConfig;
@@ -14,23 +14,29 @@ use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
 use MWHttpRequest;
 use StatusValue;
-use Wikimedia\ObjectCache\HashBagOStuff;
-use Wikimedia\ObjectCache\WANObjectCache;
 use Wikimedia\Stats\Metrics\CounterMetric;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\PreAuthenticationProvider
+ * @covers \MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup
  * @group Database
  */
 class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 	use MockHttpTrait;
 	use AuthenticationProviderTestTrait;
 
+	protected function setUp(): void {
+		parent::setUp();
+		// Reset the $wgIPReputationIPoidUrl back to the default value, in case a local development environment
+		// has a different URL.
+		$this->overrideConfigValue( 'IPReputationIPoidUrl', 'http://localhost:6035' );
+	}
+
 	private function getObjectUnderTest( $overrides = [] ): PreAuthenticationProvider {
 		return new PreAuthenticationProvider(
-			$overrides['formatterFactory'] ?? $this->getServiceContainer()->getFormatterFactory(),
-			$overrides['httpRequestFactory'] ?? $this->getServiceContainer()->getHttpRequestFactory(),
-			$overrides['cache'] ?? new WANObjectCache( [ 'cache' => new HashBagOStuff() ] ),
+			$overrides['ipReputationIPoidDataLookup'] ?? $this->getServiceContainer()->get(
+				'IPReputationIPoidDataLookup'
+			),
 			$overrides['statsFactory'] ?? $this->getServiceContainer()->getStatsFactory(),
 			$overrides['permissionManager'] ?? $this->getServiceContainer()->getPermissionManager()
 		);
@@ -97,8 +103,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
 				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'CALLBACK_PROXY', 'UNKNOWN' ],
 				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
@@ -136,8 +140,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 			] ),
 			null,
 			$authManager
@@ -172,8 +174,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 			] ),
 			null,
 			$authManager
@@ -185,6 +185,46 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 				[]
 			),
 			'Return good status if IP is not in returned data'
+		);
+		$this->assertCounterNotIncremented();
+	}
+
+	public function testTestForAccountCreationWhenIPKnownButNoMatchToBlockedAttributes() {
+		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
+		$status = new StatusValue();
+		$status->setOK( true );
+		$mwHttpRequest->method( 'execute' )
+			->willReturn( $status );
+		$ip = '1.2.3.4';
+		$mwHttpRequest->method( 'getContent' )
+			->willReturn( json_encode( [ '1.2.3.4' => [
+				'risks' => [ 'TUNNEL' ],
+				'tunnels' => [ 'PROXY' ]
+			] ] ) );
+		$this->installMockHttp( $mwHttpRequest );
+		$request = $this->createMock( WebRequest::class );
+		$request->method( 'getIP' )->willReturn( $ip );
+		$provider = $this->getObjectUnderTest();
+		$authManager = $this->createMock( AuthManager::class );
+		$authManager->method( 'getRequest' )->willReturn( $request );
+		$this->initProvider(
+			$provider,
+			new HashConfig( [
+				'IPReputationIPoidCheckAtAccountCreation' => true,
+				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'GEO_MISMATCH' ],
+				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'VPN' ],
+				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
+			] ),
+			null,
+			$authManager
+		);
+		$this->assertStatusGood(
+			$provider->testForAccountCreation(
+				$this->createMock( User::class ),
+				$this->createMock( User::class ),
+				[]
+			),
+			'Returns a good status if risk and tunnel types for IP do not match any that are blocked.'
 		);
 		$this->assertCounterNotIncremented();
 	}
@@ -211,8 +251,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL' ],
 				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
 				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
@@ -253,8 +291,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL' ],
 				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
 				'IPReputationIPoidCheckAtAccountCreationLogOnly' => true,
@@ -295,8 +331,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL', 'GEO_MISMATCH' ],
 				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
 				'IPReputationIPoidCheckAtAccountCreationLogOnly' => true,
@@ -337,8 +371,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'GEO_MISMATCH' ],
 				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
 				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
@@ -358,18 +390,17 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testTestForAccountCreationDoNothingWithoutIPoidUrl() {
-		$httpRequestFactory = $this->createMock( HttpRequestFactory::class );
-		$httpRequestFactory->expects( $this->never() )->method( 'request' );
+		$this->overrideConfigValue( 'IPReputationIPoidUrl', null );
+		$this->setService( 'HttpRequestFactory', $this->createNoOpMock( HttpRequestFactory::class ) );
 		$request = $this->createMock( WebRequest::class );
 		$request->method( 'getIP' )->willReturn( '127.0.0.1' );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
-		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
+		$provider = $this->getObjectUnderTest();
 		$this->initProvider(
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => null,
 			] ),
 			null,
 			$authManager
@@ -386,14 +417,12 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testTestForAccountCreationDoNothingWithoutFeatureFlag() {
-		$httpRequestFactory = $this->createMock( HttpRequestFactory::class );
-		$httpRequestFactory->expects( $this->never() )->method( 'request' );
-		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
+		$this->setService( 'HttpRequestFactory', $this->createNoOpMock( HttpRequestFactory::class ) );
+		$provider = $this->getObjectUnderTest();
 		$this->initProvider(
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => null,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
 			] )
 		);
 		$this->assertStatusGood(
@@ -408,14 +437,12 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testTestForAccountCreationDoNothingIfCreatorHasIPBlockExempt() {
-		$httpRequestFactory = $this->createMock( HttpRequestFactory::class );
-		$httpRequestFactory->expects( $this->never() )->method( 'request' );
-		$provider = $this->getObjectUnderTest( [ 'httpRequestFactory' => $httpRequestFactory ] );
+		$this->setService( 'HttpRequestFactory', $this->createNoOpMock( HttpRequestFactory::class ) );
+		$provider = $this->getObjectUnderTest();
 		$this->initProvider(
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
 			] )
 		);
 		$creator = $this->getTestUser( [ 'sysop' ] )->getUser();
@@ -446,8 +473,6 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidUrl' => 'http://localhost:6035',
-				'IPReputationIPoidRequestTimeoutSeconds' => 2,
 			] ),
 			null,
 			$authManager
