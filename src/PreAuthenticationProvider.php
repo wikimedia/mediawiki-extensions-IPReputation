@@ -53,7 +53,7 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 
 		$ip = $this->manager->getRequest()->getIP();
 
-		$data = $this->ipReputationIPoidDataLookup->getIPoidDataFor( $user, $ip );
+		$data = $this->ipReputationIPoidDataLookup->getIPoidDataForIp( $ip, __METHOD__ );
 		if ( !$data ) {
 			// IPoid doesn't know anything about this IP; let the authentication request proceed.
 			return StatusValue::newGood();
@@ -61,23 +61,13 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 
 		$shouldLogOnly = $this->config->get( 'IPReputationIPoidCheckAtAccountCreationLogOnly' );
 
-		if ( !isset( $data['risks'] ) || !$data['risks'] ) {
-			// 'risks' should always be set and populated, but if not set to 'UNKNOWN'.
-			$data['risks'] = [ 'UNKNOWN' ];
-		}
-
-		if ( !isset( $data['tunnels'] ) ) {
-			// 'tunnels' should always be set, but if not set to empty list.
-			$data['tunnels'] = [];
-		}
-
 		$risksToBlock = $this->config->get( 'IPReputationIPoidDenyAccountCreationRiskTypes' );
 		$tunnelTypesToBlock = $this->config->get( 'IPReputationIPoidDenyAccountCreationTunnelTypes' );
 
-		$risks = $data['risks'];
+		$risks = $data->getRisks();
 		sort( $risks );
 
-		$tunnels = $data['tunnels'];
+		$tunnels = $data->getTunnelOperators() ?? [];
 		sort( $tunnels );
 
 		// Allow for the possibility to exclude VPN users from having account

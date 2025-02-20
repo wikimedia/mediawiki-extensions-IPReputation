@@ -4,9 +4,9 @@ namespace MediaWiki\Extension\IPReputation\Services;
 
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Context\RequestContext;
+use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\FormatterFactory;
-use MediaWiki\User\UserIdentity;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Wikimedia\IPUtils;
@@ -48,14 +48,14 @@ class IPReputationIPoidDataLookup {
 	}
 
 	/**
-	 * @param UserIdentity $user
-	 * @param string $ip
+	 * Fetches IPReputation data from IPoid about a given IP address.
 	 *
-	 * @unstable Method signature will change in future commits.
-	 * @return array|null IPoid data for the specific address, or null if there is no data
+	 * @param string $ip The IP address to lookup IPReputation data on
+	 * @param string $caller The method performing this lookup, for profiling and errors
+	 * @return IPoidResponse|null IPoid data for the specific address, or null if there is no data
 	 */
-	public function getIPoidDataFor( UserIdentity $user, string $ip ): ?array {
-		$fname = __METHOD__;
+	public function getIPoidDataForIp( string $ip, string $caller ): ?IPoidResponse {
+		/** @var array|false|null $data */
 		$data = $this->cache->getWithSetCallback(
 			$this->cache->makeGlobalKey( 'ipreputation-ipoid', $ip ),
 			// IPoid data is refreshed every 24 hours and roughly 10% of its IPs drop out
@@ -64,12 +64,14 @@ class IPReputationIPoidDataLookup {
 			// and also means that IPs for e.g. residential proxies are updated in our cache
 			// relatively quickly.
 			$this->cache::TTL_HOUR,
-			function () use ( $ip, $user, $fname ) {
-				// If IPoid URL isn't configured, don't do any checks, let the user proceed.
+			function () use ( $ip, $caller ) {
+				// If IPoid URL isn't configured, then raise a warning and return that no data was found.
 				$baseUrl = $this->options->get( 'IPReputationIPoidUrl' );
 				if ( !$baseUrl ) {
 					$this->logger->warning(
-						'Configured to check IP reputation on signup, but no IPoid URL configured'
+						'IPReputation attempted to query IPoid but the IPoid URL is not ' .
+							'configured when checking IP for {caller}',
+						[ 'caller' => $caller ]
 					);
 					// Don't cache this.
 					return false;
@@ -82,7 +84,7 @@ class IPReputationIPoidDataLookup {
 					'method' => 'GET',
 					'timeout' => $timeout,
 					'connectTimeout' => 1,
-				], $fname );
+				], $caller );
 				$response = $request->execute();
 				if ( !$response->isOK() ) {
 					// Probably a 404, which means IPoid doesn't know about the IP.
@@ -102,11 +104,11 @@ class IPReputationIPoidDataLookup {
 				if ( !$data ) {
 					// Malformed data.
 					$this->logger->error(
-						'Got invalid JSON data while checking user {user} with IP {ip}',
+						'Got invalid JSON data from IPoid while checking IP {ip} for {caller}',
 						[
 							'ip' => $ip,
-							'user' => $user->getName(),
-							'response' => $request->getContent()
+							'response' => $request->getContent(),
+							'caller' => $caller,
 						]
 					);
 					return null;
@@ -117,11 +119,11 @@ class IPReputationIPoidDataLookup {
 				if ( !isset( $data[IPUtils::prettifyIP( $ip )] ) ) {
 					// IP should always be set in the data array, but just to be safe.
 					$this->logger->error(
-						'Got JSON data with no IP {ip} present while checking user {user}',
+						'Got JSON data from IPoid missing the requested IP while checking {ip} for {caller}',
 						[
 							'ip' => $ip,
-							'user' => $user->getName(),
-							'response' => $request->getContent()
+							'response' => $request->getContent(),
+							'caller' => $caller,
 						]
 					);
 					return null;
@@ -133,11 +135,12 @@ class IPReputationIPoidDataLookup {
 			}
 		);
 
-		// Unlike null, false tells cache not to cache something. Normalize both to null before returning.
-		if ( $data === false ) {
+		// If no IPReputation data was found or the request failed, then return null
+		if ( $data === false || $data === null ) {
 			return null;
 		}
 
-		return $data;
+		// Return the IPoid data wrapped in the value object for ease of access for the caller.
+		return IPoidResponse::newFromArray( $data );
 	}
 }

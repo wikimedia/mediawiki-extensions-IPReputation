@@ -3,11 +3,11 @@
 namespace MediaWiki\Extension\IPReputation\Tests\Integration;
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Logger\LoggerFactory;
-use MediaWiki\User\UserIdentity;
 use MediaWikiIntegrationTestCase;
 use MockHttpTrait;
 use MWHttpRequest;
@@ -40,7 +40,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function testGetIPoidDataForWhenIPoidUrlNotSet() {
+	public function testGetIPoidDataForIpWhenIPoidUrlNotSet() {
 		$this->overrideConfigValue( 'IPReputationIPoidUrl', null );
 
 		// Expect no attempts to make a request to IPoid without a defined URL, and expect that a warning
@@ -49,17 +49,20 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$mockLogger = $this->createMock( LoggerInterface::class );
 		$mockLogger->expects( $this->once() )
 			->method( 'warning' )
-			->with( 'Configured to check IP reputation on signup, but no IPoid URL configured' );
+			->with(
+				'IPReputation attempted to query IPoid but the IPoid URL is not ' .
+					'configured when checking IP for {caller}'
+			);
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataFor(
-				$this->createMock( UserIdentity::class ), '1.2.3.4'
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
 			),
 			'Should return null if IPoid URL was not defined'
 		);
 	}
 
-	public function testGetIPoidDataForOnNonArrayResponse() {
+	public function testGetIPoidDataForIpOnNonArrayResponse() {
 		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
 		$ip = '1.2.3.4';
 
@@ -85,24 +88,26 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->setService( 'HttpRequestFactory', $mockHttpRequestFactory );
 
 		// Create a mock LoggerInterface that expects a error to be logged about the invalid response from IPoid
-		$mockUserIdentity = $this->createMock( UserIdentity::class );
-		$mockUserIdentity->method( 'getName' )
-			->willReturn( 'Test' );
 		$mockLogger = $this->createMock( LoggerInterface::class );
 		$mockLogger->expects( $this->once() )
 			->method( 'error' )
-			->with(
-				'Got invalid JSON data while checking user {user} with IP {ip}',
-				[ 'ip' => $ip, 'user' => 'Test', 'response' => $mwHttpRequest->getContent() ]
-			);
+			->willReturnCallback( function ( $msg, $context ) use ( $ip, $mwHttpRequest ) {
+				$this->assertSame( 'Got invalid JSON data from IPoid while checking IP {ip} for {caller}', $msg );
+				// Check that the caller is specified, but ignore it's value as it may change
+				$this->assertArrayHasKey( 'caller', $context );
+				unset( $context['caller'] );
+				$this->assertArrayEquals(
+					[ 'ip' => $ip, 'response' => $mwHttpRequest->getContent() ], $context, false, true
+				);
+			} );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataFor( $mockUserIdentity, $ip ),
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( $ip, __METHOD__ ),
 			'Should return null if the response from IPoid was not an array'
 		);
 	}
 
-	public function testGetIPoidDataForOnArrayResponseNotContainingIP() {
+	public function testGetIPoidDataForIpOnArrayResponseNotContainingIP() {
 		// Make a mock MWHttpRequest that will simulate a response which is invalid from IPoid
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$status = new StatusValue();
@@ -114,24 +119,28 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 
 		// Create a mock LoggerInterface that expects a error to be logged about the invalid response from IPoid
-		$mockUserIdentity = $this->createMock( UserIdentity::class );
-		$mockUserIdentity->method( 'getName' )
-			->willReturn( 'Test' );
 		$mockLogger = $this->createMock( LoggerInterface::class );
 		$mockLogger->expects( $this->once() )
 			->method( 'error' )
-			->with(
-				'Got JSON data with no IP {ip} present while checking user {user}',
-				[ 'ip' => '1.2.3.4', 'user' => 'Test', 'response' => $mwHttpRequest->getContent() ]
-			);
+			->willReturnCallback( function ( $msg, $context ) use ( $mwHttpRequest ) {
+				$this->assertSame(
+					'Got JSON data from IPoid missing the requested IP while checking {ip} for {caller}', $msg
+				);
+				// Check that the caller is specified, but ignore it's value as it may change
+				$this->assertArrayHasKey( 'caller', $context );
+				unset( $context['caller'] );
+				$this->assertArrayEquals(
+					[ 'ip' => '1.2.3.4', 'response' => $mwHttpRequest->getContent() ], $context, false, true
+				);
+			} );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataFor( $mockUserIdentity, '1.2.3.4' ),
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( '1.2.3.4', __METHOD__ ),
 			'Should return null if IP was not present in response from IPoid'
 		);
 	}
 
-	public function testGetIPoidDataForWhenIPoidReturnsWith500Error() {
+	public function testGetIPoidDataForIpWhenIPoidReturnsWith500Error() {
 		// Mock the IPoid returns a response with a HTTP status code of 500,
 		// indicating some kind of server error.
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
@@ -148,14 +157,14 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			->method( 'error' );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataFor(
-				$this->createMock( UserIdentity::class ), '1.2.3.4'
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
 			),
 			'Should return null if IP was not present in response from IPoid'
 		);
 	}
 
-	public function testGetIPoidDataForWhenIPoidHasNoMatch() {
+	public function testGetIPoidDataForIpWhenIPoidHasNoMatch() {
 		// Mock the IPoid returns a response with a HTTP status code of 404,
 		// indicating that the IP was not found in the dataset.
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
@@ -171,14 +180,14 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$mockLogger = $this->createNoOpMock( LoggerInterface::class );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataFor(
-				$this->createMock( UserIdentity::class ), '1.2.3.4'
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
 			),
 			'Should return null if IP was not present in response from IPoid'
 		);
 	}
 
-	public function testGetIPoidDataForOnArrayResponse() {
+	public function testGetIPoidDataForIpOnArrayResponse() {
 		// Mock IPoid returning a valid response with IPReputation data
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
 		$status = new StatusValue();
@@ -193,13 +202,13 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 
 		$this->assertArrayEquals(
-			[
+			IPoidResponse::newFromArray( [
 				'risks' => [ 'TUNNEL' ],
 				'tunnels' => [ 'PROXY' ]
-			],
-			$this->getObjectUnderTest()->getIPoidDataFor(
-				$this->createMock( UserIdentity::class ), '1.2.3.4'
-			),
+			] )->jsonSerialize(),
+			$this->getObjectUnderTest()->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
+			)->jsonSerialize(),
 			'Should return array from IPoid if response is valid and the IP is known to IPoid'
 		);
 	}

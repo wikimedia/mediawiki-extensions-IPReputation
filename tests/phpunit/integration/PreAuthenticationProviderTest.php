@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\IPReputation\Tests\Integration;
 
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\HashConfig;
+use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Extension\IPReputation\PreAuthenticationProvider;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Request\WebRequest;
@@ -79,12 +80,11 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationDenyIfIPMatchButNoRisksOrTunnels() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have no risks of tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [ 'data' ] );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [ 'data' ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -104,7 +104,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusNotGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -115,11 +115,10 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationOnNoIPoidData() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to indicate no data.
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
 			->willReturn( null );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
@@ -137,7 +136,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -148,12 +147,11 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationWhenIPKnownButNoMatchToBlockedAttributes() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -173,7 +171,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -184,12 +182,11 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationTunnelType() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -209,7 +206,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusNotGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -220,12 +217,11 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationTunnelTypeButLogOnly() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -245,7 +241,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -256,12 +252,11 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationTunnelTypeAllowVPNIfDesired() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'VPN' ] ] );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'VPN' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -281,7 +276,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
@@ -292,15 +287,14 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 
 	public function testTestForAccountCreationRiskTypesConfig() {
 		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$mockUserBeingCreated = $this->createMock( User::class );
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataFor' )
-			->with( $mockUserBeingCreated, $ip )
-			->willReturn( [
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( IPoidResponse::newFromArray( [
 				'risks' => [ 'TUNNEL', 'GEO_MISMATCH' ],
 				'tunnels' => [ 'PROXY' ]
-			] );
+			] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = $this->createMock( WebRequest::class );
@@ -320,7 +314,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		);
 		$this->assertStatusNotGood(
 			$provider->testForAccountCreation(
-				$mockUserBeingCreated,
+				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
