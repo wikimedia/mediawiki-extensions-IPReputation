@@ -18,6 +18,15 @@
 			"i18n"
 		]
 	},
+	"HookHandlers": {
+		"ConfirmEditHooks": {
+			"class": "MediaWiki\\Extension\\IPReputation\\Hooks\\Handlers\\ConfirmEditHandler",
+			"services": [ "MainConfig", "IPReputationIPoidDataLookup" ]
+		}
+	},
+	"Hooks": {
+		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks"
+	},
 	"config": {
 		"IPReputationIPoidUrl": {
 			"description": "URL to access IPoid service",
@@ -53,6 +62,10 @@
 				"VPN",
 				"PROXY"
 			]
+		},
+		"IPReputationEnableLoginCaptchaIfIPKnown": {
+			"description": "If the IP is known to IPoid, require a CAPTCHA on Special:UserLogin.",
+			"value": true
 		}
 	},
 	"AuthManagerAutoConfig": {
