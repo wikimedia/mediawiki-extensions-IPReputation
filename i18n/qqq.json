@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "{{desc|name=IPReputation|url=https://www.mediawiki.org/wiki/Extension:IPReputation}}",
-	"ipreputation-blocked-ip-reputation": "Error message when an action is blocked due to IP reputation reasons."
+	"ipreputation-blocked-ip-reputation": "Error message when an action is blocked due to IP reputation reasons.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder.",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder.",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder.",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder.",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder.",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Abuse filter syntax option in a dropdown from the group {{msg-mw|Abusefilter-edit-builder-group-vars}}.\n\nParameters:\n* $1 - the text clicking on the option would insert into the filter builder."
 }

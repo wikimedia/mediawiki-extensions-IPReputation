@@ -22,9 +22,17 @@
 		"ConfirmEditHooks": {
 			"class": "MediaWiki\\Extension\\IPReputation\\Hooks\\Handlers\\ConfirmEditHandler",
 			"services": [ "MainConfig", "IPReputationIPoidDataLookup" ]
+		},
+		"AbuseFilterHandler": {
+			"class": "MediaWiki\\Extension\\IPReputation\\Hooks\\Handlers\\AbuseFilterHandler",
+			"services": [ "IPReputationIPoidDataLookup" ]
 		}
 	},
 	"Hooks": {
+		"AbuseFilter-builder": "AbuseFilterHandler",
+		"AbuseFilterCustomProtectedVariables": "AbuseFilterHandler",
+		"AbuseFilter-generateUserVars": "AbuseFilterHandler",
+		"AbuseFilter-interceptVariable": "AbuseFilterHandler",
 		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks"
 	},
 	"config": {

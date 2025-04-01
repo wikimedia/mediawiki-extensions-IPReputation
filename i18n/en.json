@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "Provide access for fetching, logging, and acting on IP reputation data.",
-	"ipreputation-blocked-ip-reputation": "The IP address that you are currently using has been blocked because it is believed to be recently used for abusive purposes."
+	"ipreputation-blocked-ip-reputation": "The IP address that you are currently using has been blocked because it is believed to be recently used for abusive purposes.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "List of tunnel operators associated with the IP being used by the user ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "List of risks associated with the IP being used by the user ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "List of proxy services associated with IP being used by the user ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "List of behaviors associated with the IP being used by the user ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Number of clients associated with IP being used by the user ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Is the IP being used by the user is known by the IPoid service ($1)"
 }
