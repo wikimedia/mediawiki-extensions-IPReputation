@@ -4,5 +4,8 @@
 			"Milicevic01"
 		]
 	},
-	"ipreputation-blocked-ip-reputation": "IP адреса коју тренутно користите је блокирана зато што је претходно коришћена за вандализам."
+	"ipreputation-blocked-ip-reputation": "IP адреса коју тренутно користите је блокирана зато што је претходно коришћена за вандализам.",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Списак прокси сервиса повезаних са IP адресом корисник ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Број клијената повезаних са IP адресом корисника ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Да ли је IP адреса корисника позната IPoid сервису ($1)"
 }

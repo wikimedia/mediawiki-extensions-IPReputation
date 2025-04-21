@@ -1,10 +1,18 @@
 {
 	"@metadata": {
 		"authors": [
+			"Bananax47",
+			"JLTRY",
 			"Mahabarata",
 			"SleaY"
 		]
 	},
 	"ipreputation-desc": "Fournir un accès pour la récupération, la journalisation et l'action sur les données de réputation IP.",
-	"ipreputation-blocked-ip-reputation": "L'adresse IP que vous utilisez actuellement a été bloquée car elle a été récemment utilisée à des fins abusives."
+	"ipreputation-blocked-ip-reputation": "L'adresse IP que vous utilisez actuellement a été bloquée car elle a été récemment utilisée à des fins abusives.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Liste des opérateurs de tunnel associés à l'IP utilisée par l'utilisateur ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Liste des risques associés à l'IP utilisée par l'utilisateur ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Liste des services de proxy associés à l'adresse IP utilisés par l'utilisateur ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Liste des comportements associés à l'IP utilisée par l'utilisateur ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Nombre de clients associés à l'IP utilisée par l'utilisateur ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "L'adresse IP utilisée par l'utilisateur est-elle connue du service IPoid ($1)"
 }

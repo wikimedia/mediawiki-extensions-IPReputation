@@ -3,5 +3,11 @@
 		"authors": []
 	},
 	"ipreputation-desc": "Zugang zum Abrufen, Protokollieren und Verarbeiten von IP-Reputationsdaten.",
-	"ipreputation-blocked-ip-reputation": "Die von dir derzeit verwendete IP-Adresse wurde gesperrt, da angenommen wird, dass sie kürzlich für missbräuchliche Zwecke verwendet wurde."
+	"ipreputation-blocked-ip-reputation": "Die von dir derzeit verwendete IP-Adresse wurde gesperrt, da angenommen wird, dass sie kürzlich für missbräuchliche Zwecke verwendet wurde.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Liste der Tunnelbetreiber, die mit der vom Benutzer verwendeten IP-Adresse verknüpft sind ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Liste der Risiken, die mit der vom Benutzer verwendeten IP-Adresse verbunden sind ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Liste der Proxy-Dienste, die mit der vom Benutzer verwendeten IP-Adresse verknüpft sind ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Liste der Verhaltensweisen, die mit der vom Benutzer verwendeten IP-Adresse verknüpft sind ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Anzahl der Clients, die mit der vom Benutzer verwendeten IP-Adresse verknüpft sind ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Ist die vom Benutzer verwendete IP-Adresse dem IPoid-Dienst bekannt ($1)"
 }

@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "IP reputasiya məlumatlarını əldə etmək, qeyd etmək və işləmək üçün girişi təmin edir.",
-	"ipreputation-blocked-ip-reputation": "Hal-hazırda istifadə etdiyiniz IP ünvanı bloklanıb, çünki onun bu yaxınlarda sui-istifadə məqsədləri üçün istifadə edildiyi güman edilir."
+	"ipreputation-blocked-ip-reputation": "Hal-hazırda istifadə etdiyiniz IP ünvanı bloklanıb, çünki onun bu yaxınlarda sui-istifadə məqsədləri üçün istifadə edildiyi güman edilir.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "İstifadəçi tərəfindən istifadə edilən IP ilə əlaqəli tunel operatorlarının siyahısı ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "İstifadəçi tərəfindən istifadə edilən IP ilə bağlı risklərin siyahısı ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "İstifadəçi tərəfindən istifadə edilən IP ilə əlaqəli proksi xidmətlərin siyahısı ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "İstifadəçi tərəfindən istifadə edilən IP ilə əlaqəli davranışların siyahısı ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "İstifadəçi tərəfindən istifadə edilən IP ilə əlaqəli müştərilərin sayı ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "İstifadəçi tərəfindən istifadə edilən IP IPoid xidməti tərəfindən tanınır? ($1)"
 }
