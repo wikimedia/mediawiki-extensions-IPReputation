@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "Forni le accesso necessari pro recuperar, registrar e tractar datos de reputation de adresse IP.",
-	"ipreputation-blocked-ip-reputation": "Le adresse IP que tu usa actualmente ha essite blocate perque es credite que illo ha recentemente essite usate a fines abusive."
+	"ipreputation-blocked-ip-reputation": "Le adresse IP que tu usa actualmente ha essite blocate perque es credite que illo ha recentemente essite usate a fines abusive.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Lista de operatores de tunnel associate al adresse IP usate per le usator ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Lista de riscos associate con le adresse IP usate per le usator ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Lista de servicios de proxy associate con le adresse IP usate per le usator ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Lista de comportamentos associate con le adresse IP usate per le usator ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Numero de clientes associate con le adresse IP usate per le usator ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Si le adresse IP usate per le usator es cognoscite per le servicio IPoid ($1)"
 }
