@@ -9,9 +9,9 @@ use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterGenerateUserVarsHook;
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterInterceptVariableHook;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
+use MediaWiki\RecentChanges\RecentChange;
 use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
-use RecentChange;
 use Wikimedia\IPUtils;
 
 // phpcs:disable MediaWiki.NamingConventions.LowerCamelFunctionsName.FunctionName
