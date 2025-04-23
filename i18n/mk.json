@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "Обезбедува пристап за добивање, заведување и дејствување по податоци за угледот на IP-адреси.",
-	"ipreputation-blocked-ip-reputation": "IP-адресата што тековно ја користите е блокирана бидејќи се смета дека неодамна е употребена во злоупотреба."
+	"ipreputation-blocked-ip-reputation": "IP-адресата што тековно ја користите е блокирана бидејќи се смета дека неодамна е употребена во злоупотреба.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Список на тунел-оператори поврзани со IP-адреса што ја користи корисникот ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Список на ризици поврзани со IP-адреса што ја користи корисникот ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Список на застапнички служби поврзани со IP-адреса што ја користи корисникот ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Список на поведенија поврзани со IP-адреса што ја користи корисникот ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Број на клиенти поврзани со IP-адреса што ја користи корисникот ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Дали IP-адресата што ја користи уредникот е позната според IPoid-службата ($1)"
 }

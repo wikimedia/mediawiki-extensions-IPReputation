@@ -1,0 +1,8 @@
+{
+	"@metadata": {
+		"authors": [
+			"Baydastann"
+		]
+	},
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Колдонуучу тарабынан колдонулган IP менен байланышкан прокси кызматтардын тизмеси ($1)"
+}
