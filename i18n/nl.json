@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "Biedt toegang voor het ophalen, loggen en gebruiken van IP-reputatiegegevens.",
-	"ipreputation-blocked-ip-reputation": "Het IP-adres dat u momenteel gebruikt, is geblokkeerd omdat wordt aangenomen dat het onlangs voor onrechtmatige doeleinden is gebruikt."
+	"ipreputation-blocked-ip-reputation": "Het IP-adres dat u momenteel gebruikt, is geblokkeerd omdat wordt aangenomen dat het onlangs voor onrechtmatige doeleinden is gebruikt.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Lijst met tunneloperators die betrokken zijn bij het IP-adres dat door de gebruiker wordt gebruikt ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Lijst met risico’s die verband houden met het IP-adres dat door de gebruiker wordt gebruikt ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Lijst met proxydiensten die betrokken zijn bij het IP-adres dat door de gebruiker wordt gebruikt ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Lijst met gedragingen die gekoppeld zijn aan het IP-adres dat door de gebruiker wordt gebruikt ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Aantal cliënten die verband houden met het IP-adres dat door de gebruiker wordt gebruikt ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Is het IP-adres dat de gebruiker gebruikt bekend bij de dienst IPoid ($1)"
 }
