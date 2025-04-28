@@ -13,6 +13,8 @@ use MockHttpTrait;
 use MWHttpRequest;
 use Psr\Log\LoggerInterface;
 use StatusValue;
+use Wikimedia\Stats\Metrics\TimingMetric;
+use Wikimedia\Stats\StatsUtils;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup
@@ -27,6 +29,42 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->overrideConfigValue( 'IPReputationIPoidUrl', 'http://localhost:6035' );
 	}
 
+	/**
+	 * Convenience function to assert that the IPReputation IPoid timing metric was called to observe a time.
+	 *
+	 * @param string $caller The caller provided to TimingMetric::setLabel
+	 * @return void
+	 */
+	private function assertTimingObserved( string $caller ): void {
+		$metric = $this->getServiceContainer()
+			->getStatsFactory()
+			->withComponent( 'IPReputation' )
+			->getTiming( 'ipoid_data_lookup_time' );
+
+		$samples = $metric->getSamples();
+
+		$this->assertInstanceOf( TimingMetric::class, $metric );
+		$this->assertSame( 1, $metric->getSampleCount() );
+
+		$actualLabels = array_combine( $metric->getLabelKeys(), $samples[0]->getLabelValues() );
+		$this->assertSame( [ 'caller' => StatsUtils::normalizeString( $caller ) ], $actualLabels );
+	}
+
+	/**
+	 * Convenience function to assert that the IPReputation IPoid timing metric was not called.
+	 *
+	 * @return void
+	 */
+	private function assertTimingNotObserved(): void {
+		$metric = $this->getServiceContainer()
+			->getStatsFactory()
+			->withComponent( 'IPReputation' )
+			->getTiming( 'ipoid_data_lookup_time' );
+
+		$this->assertInstanceOf( TimingMetric::class, $metric );
+		$this->assertSame( 0, $metric->getSampleCount() );
+	}
+
 	private function getObjectUnderTest( $mockLogger = null ): IPReputationIPoidDataLookup {
 		return new IPReputationIPoidDataLookup(
 			new ServiceOptions(
@@ -35,6 +73,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			),
 			$this->getServiceContainer()->getFormatterFactory(),
 			$this->getServiceContainer()->getHttpRequestFactory(),
+			$this->getServiceContainer()->getStatsFactory(),
 			$this->getServiceContainer()->getMainWANObjectCache(),
 			$mockLogger ?? LoggerFactory::getInstance( 'IPReputation' )
 		);
@@ -60,6 +99,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			),
 			'Should return null if IPoid URL was not defined'
 		);
+		$this->assertTimingNotObserved();
 	}
 
 	public function testGetIPoidDataForIpOnNonArrayResponse() {
@@ -105,6 +145,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( $ip, __METHOD__ ),
 			'Should return null if the response from IPoid was not an array'
 		);
+		$this->assertTimingObserved( __METHOD__ );
 	}
 
 	public function testGetIPoidDataForIpOnArrayResponseNotContainingIP() {
@@ -138,6 +179,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( '1.2.3.4', __METHOD__ ),
 			'Should return null if IP was not present in response from IPoid'
 		);
+		$this->assertTimingObserved( __METHOD__ );
 	}
 
 	public function testGetIPoidDataForIpWhenIPoidReturnsWith500Error() {
@@ -162,6 +204,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			),
 			'Should return null if IP was not present in response from IPoid'
 		);
+		$this->assertTimingObserved( __METHOD__ );
 	}
 
 	public function testGetIPoidDataForIpWhenIPoidHasNoMatch() {
@@ -185,6 +228,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			),
 			'Should return null if IP was not present in response from IPoid'
 		);
+		$this->assertTimingObserved( __METHOD__ );
 	}
 
 	public function testGetIPoidDataForIpOnArrayResponse() {
@@ -211,5 +255,6 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			)->jsonSerialize(),
 			'Should return array from IPoid if response is valid and the IP is known to IPoid'
 		);
+		$this->assertTimingObserved( __METHOD__ );
 	}
 }

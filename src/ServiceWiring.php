@@ -21,6 +21,7 @@ return [
 			),
 			$services->getFormatterFactory(),
 			$services->getHttpRequestFactory(),
+			$services->getStatsFactory(),
 			$services->getMainWANObjectCache(),
 			LoggerFactory::getInstance( 'IPReputation' )
 		);
