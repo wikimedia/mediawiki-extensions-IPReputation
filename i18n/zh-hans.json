@@ -1,9 +1,10 @@
 {
 	"@metadata": {
 		"authors": [
-			"沈澄心"
+			"沈澄心",
+			"Diskdance"
 		]
 	},
-	"ipreputation-desc": "提供获取、记录和处理IP信誉数据的访问权限。",
+	"ipreputation-desc": "提供获取、记录和依照IP信誉数据采取措施的能力。",
 	"ipreputation-blocked-ip-reputation": "您当前使用的IP地址已被封禁，因为该地址据信近期被用于滥用目的。"
 }
