@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "אספקת גישה לאחזור, רישום ביומן ופעולות על נתוני מוניטין IP.",
-	"ipreputation-blocked-ip-reputation": "כתובת ה־IP הנוכחית שלך נחסמה מכיוון שיש סיבה לחשוב שהיא משמשת לאחרונה למטרות פוגעניות."
+	"ipreputation-blocked-ip-reputation": "כתובת ה־IP הנוכחית שלך נחסמה מכיוון שיש סיבה לחשוב שהיא משמשת לאחרונה למטרות פוגעניות.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "רשימת מפעילי מנהרות שמזוהים עם כתובת ה־IP של המשתמש ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "רשימת סיכונים שקשורים לכתובת ה־IP של המשתמש ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "רשימת שירותי שרתים מתווכים (פרוקסי) שמזוהים עם כתובת ה־IP של המשתמש ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "רשימת התנהגויות שמזוהות עם כתובת ה־IP של המשתמש ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "מספר הלקוחות שמזוהות עם כתובת ה־IP של המשתמש ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "האם כתובת ה־IP של המשתמש ידועה לשירות האייפואיד ($1)"
 }
