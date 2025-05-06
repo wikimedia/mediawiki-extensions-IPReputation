@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "Proporciona acceso para pescudar, rexistrar e actuar sobre datos de reputación de enderezos IP.",
-	"ipreputation-blocked-ip-reputation": "O enderezo IP que estás a usar actualmente bloqueouse porque se utilizou recentemente con fins abusivos."
+	"ipreputation-blocked-ip-reputation": "O enderezo IP que estás a usar actualmente bloqueouse porque se utilizou recentemente con fins abusivos.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Lista de operadores de túnel asociados co enderezo IP que utiliza o usuario ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Lista de riscos asociados co enderezo IP que utiliza o usuario ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Lista de servizos de proxy asociados co enderezo IP que utiliza o usuario ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Lista de comportamentos asociados co enderezo IP que utiliza o usuario ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Número de clientes asociados co enderezo IP que utiliza o usuario ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "O servizo IPoid coñece o enderezo IP que utiliza o usuario ($1)"
 }
