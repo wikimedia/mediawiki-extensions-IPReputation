@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "توفير إمكانية الوصول لجلب بيانات سمعة IP وتسجيلها والعمل عليها.",
-	"ipreputation-blocked-ip-reputation": "لقد تم حظر عنوان IP الذي تستخدمه حاليًا لأنه يُعتقد أنه تم استخدامه مؤخرًا لأغراض مسيئة."
+	"ipreputation-blocked-ip-reputation": "لقد تم حظر عنوان IP الذي تستخدمه حاليًا لأنه يُعتقد أنه تم استخدامه مؤخرًا لأغراض مسيئة.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "قائمة مشغلي الأنفاق المرتبطين بعنوان IP الذي يستخدمه المستخدم ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "قائمة المخاطر المرتبطة بعنوان IP الذي يستخدمه المستخدم ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "قائمة خدمات الوكيل المرتبطة بعنوان IP الذي يستخدمه المستخدم ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "قائمة السلوكيات المرتبطة بعنوان IP الذي يستخدمه المستخدم ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "عدد العملاء المرتبطين بعنوان IP الذي يستخدمه المستخدم ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "هل عنوان IP الذي يستخدمه المستخدم معروف من خلال خدمة IPoid ($1)"
 }
