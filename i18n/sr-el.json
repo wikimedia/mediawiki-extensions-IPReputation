@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": []
+	},
+	"ipreputation-blocked-ip-reputation": "IP adresa koju trenutno koristite je blokirana zato što je prethodno korišćena za vandalizam.",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Spisak proksi servisa povezanih sa IP adresom korisnik ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Broj klijenata povezanih sa IP adresom korisnika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Da li je IP adresa korisnika poznata IPoid servisu ($1)"
+}

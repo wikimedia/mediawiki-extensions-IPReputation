@@ -1,0 +1,13 @@
+{
+	"@metadata": {
+		"authors": [
+			"Ykhwong"
+		]
+	},
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "사용자가 사용 중인 IP와 연결된 터널 운영자 목록 ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "사용자가 사용하는 IP와 관련된 위험 목록 ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "사용자가 사용 중인 IP와 연결된 프록시 서비스 목록 ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "사용자가 사용 중인 IP와 관련된 동작 목록 ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "사용자가 사용 중인 IP와 연결된 클라이언트 수 ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "사용자가 사용 중인 IP가 IPoid 서비스에 의해 알려져 있는지의 여부 ($1)"
+}
