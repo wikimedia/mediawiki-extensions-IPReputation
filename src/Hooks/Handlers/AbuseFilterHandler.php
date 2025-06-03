@@ -53,7 +53,7 @@ class AbuseFilterHandler implements
 			$vars->setLazyLoadVar(
 				$variable,
 				$this->getMethodForVariable( $variable ),
-				[ 'userIdentity' => $user ]
+				[ 'userIdentity' => $user, 'rc' => $rc ]
 			);
 		}
 	}
@@ -86,10 +86,13 @@ class AbuseFilterHandler implements
 			return false;
 		}
 
-		$data = $this->ipoidDataLookup->getIPoidDataForIp(
-			RequestContext::getMain()->getRequest()->getIP(),
-			__METHOD__
-		);
+		$ip = $this->getTargetIP( $parameters );
+		if ( !$ip ) {
+			$result = null;
+			return false;
+		}
+
+		$data = $this->ipoidDataLookup->getIPoidDataForIp( $ip, __METHOD__ );
 
 		// If no IPoid data exists, then make the result null to indicate no match.
 		// The exception is ip-reputation-ipoid-known which is false when no IPoid data exists.
@@ -169,5 +172,22 @@ class AbuseFilterHandler implements
 	 */
 	private function getVariableForMethod( string $variable ): string {
 		return str_replace( '-', '_', $variable );
+	}
+
+	/**
+	 * Gets the IP address to be used as the target IP for the IPoid request.
+	 *
+	 * @param array $parameters The parameters provided to {@link self::onAbuseFilter_interceptVariable}
+	 * @return string|null The target IP address for IPoid data queries. May be an empty string or null
+	 *   if no IP could be found.
+	 */
+	private function getTargetIP( array $parameters ): ?string {
+		/** @var RecentChange|null $rc */
+		$rc = $parameters['rc'];
+		if ( $rc !== null ) {
+			return $rc->getAttribute( 'rc_ip' );
+		} else {
+			return RequestContext::getMain()->getRequest()->getIP();
+		}
 	}
 }

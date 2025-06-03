@@ -10,16 +10,23 @@ use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\IPReputation\Hooks\Handlers\AbuseFilterHandler;
 use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
+use MediaWiki\MainConfigNames;
+use MediaWiki\Permissions\UltimateAuthority;
+use MediaWiki\RecentChanges\RecentChange;
+use MediaWiki\Tests\User\TempUser\TempUserTestTrait;
 use MediaWiki\User\UserFactory;
+use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
 use MockTitleTrait;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\Hooks\Handlers\AbuseFilterHandler
+ * @group Database
  */
 class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 	use FilterFromSpecsTestTrait;
 	use MockTitleTrait;
+	use TempUserTestTrait;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -56,14 +63,16 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 	 * correctly set for this user.
 	 *
 	 * @param string $username Username or IP
+	 * @param RecentChange|null $recentChange Provide if the action is historical (doing this should mean the
+	 *   IP comes from the RecentChange object and not the main request).
 	 * @return VariableHolder
 	 */
-	private function getUserVariablesForUser( string $username ) {
+	private function getUserVariablesForUser( string $username, ?RecentChange $recentChange = null ) {
 		$userObj = $this->getServiceContainer()->getUserFactory()
 			->newFromName( $username, UserFactory::RIGOR_NONE );
 		$runVariableGenerator = AbuseFilterServices::getVariableGeneratorFactory()
 			->newRunGenerator( $userObj, $this->makeMockTitle( 'Test' ) );
-		$runVariableGenerator->addUserVars( $userObj );
+		$runVariableGenerator->addUserVars( $userObj, $recentChange );
 		return $runVariableGenerator->getVariableHolder();
 	}
 
@@ -142,6 +151,82 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 		// Test that other variables can be fetched as normal with IPReputation installed (specifically that the hook
 		// handler returns early if the variable is not an IPReputation variable).
 		$this->assertVariableHasValue( 'ip', 'user_type', $varHolder );
+	}
+
+	public function testIPReputationVariablesForRecentChangeWhenPutIPinRCIsTrue() {
+		$this->overrideConfigValue( MainConfigNames::PutIPinRC, true );
+		// Mock that IPoid knows 1.2.3.4 and provide data used by each IPReputation AbuseFilter variable
+		$ip = '1.2.3.4';
+		$response = IPoidResponse::newFromArray( [
+			'tunnels' => [ 'TUNNEL' ],
+			'risks' => [ 'RISK' ],
+			'proxies' => [ 'PROXY' ],
+			'behaviors' => [ 'BEHAVIOUR' ],
+			'client_count' => 123,
+		] );
+		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
+		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
+			->with( $ip )
+			->willReturn( $response );
+		$this->setService( 'IPReputationIPoidDataLookup', $mockIPoidDataLookup );
+
+		$this->disableAutoCreateTempUser();
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+		$pageUpdateStatus = $this->editPage(
+			$this->getNonexistingTestPage(), 'Testingabc', '', NS_MAIN,
+			new UltimateAuthority( UserIdentityValue::newAnonymous( $ip ) )
+		);
+		$this->assertStatusGood( $pageUpdateStatus );
+		$recentChange = RecentChange::newFromConds( [
+			'rc_this_oldid' => $pageUpdateStatus->getNewRevision()->getId(),
+		] );
+
+		// Change the IP so that we can assert that when providing a RecentChange object we don't use the main
+		// request IP.
+		RequestContext::getMain()->getRequest()->setIP( '5.6.7.8' );
+
+		// Get the variables when the query is for a RecentChanges entry
+		$varHolder = $this->getUserVariablesForUser( $ip, $recentChange );
+
+		// Assert that the IPReputation variables have the expected value
+		$this->assertVariableHasValue( $response->getTunnelOperators(), 'ip_reputation_tunnel_operators', $varHolder );
+		$this->assertVariableHasValue( $response->getRisks(), 'ip_reputation_risk_types', $varHolder );
+		$this->assertVariableHasValue( $response->getProxies(), 'ip_reputation_client_proxies', $varHolder );
+		$this->assertVariableHasValue( $response->getBehaviors(), 'ip_reputation_client_behaviors', $varHolder );
+		$this->assertVariableHasValue( $response->getNumUsersOnThisIP(), 'ip_reputation_client_count', $varHolder );
+		$this->assertVariableHasValue( true, 'ip_reputation_ipoid_known', $varHolder );
+
+		// Test that other variables can be fetched as normal with IPReputation installed (specifically that the hook
+		// handler returns early if the variable is not an IPReputation variable).
+		$this->assertVariableHasValue( 'ip', 'user_type', $varHolder );
+	}
+
+	public function testIPReputationVariablesForRecentChangeWhenPutIPinRCIsFalse() {
+		$this->overrideConfigValue( MainConfigNames::PutIPinRC, false );
+
+		$this->setService(
+			'IPReputationIPoidDataLookup', $this->createNoOpMock( IPReputationIPoidDataLookup::class )
+		);
+
+		// Make an edit using an IP while $wgPutIPinRC is false (so the recentchanges entry has no IP)
+		$ip = '1.2.3.4';
+		$this->disableAutoCreateTempUser();
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+		$pageUpdateStatus = $this->editPage(
+			$this->getNonexistingTestPage(), 'Testingabc', '', NS_MAIN,
+			new UltimateAuthority( UserIdentityValue::newAnonymous( $ip ) )
+		);
+		$this->assertStatusGood( $pageUpdateStatus );
+		$recentChange = RecentChange::newFromConds( [
+			'rc_this_oldid' => $pageUpdateStatus->getNewRevision()->getId(),
+		] );
+
+		$varHolder = $this->getUserVariablesForUser( $ip, $recentChange );
+
+		// The variables should not be set as the IP was not in the recentchanges table.
+		foreach ( AbuseFilterHandler::SUPPORTED_VARIABLES as $variable ) {
+			$this->assertVariableHasValue( null, $variable, $varHolder );
+		}
 	}
 
 	public function testIPReputationVariablesUnsetWhenUserIsNotIP() {
