@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Pikne"
+		]
+	},
+	"ipreputation-desc": "Võimaldab juurdepääsu IP-aadresside maine andmete hankimiseks, logimiseks ja neil andmetel põhinevateks toiminguteks.",
+	"ipreputation-blocked-ip-reputation": "IP-aadress, mida praegu kasutad, on blokeeritud, sest usutavasti on seda hiljuti kasutatud halva kavatsusega."
+}
