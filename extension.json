@@ -25,12 +25,13 @@
 		},
 		"AbuseFilterHandler": {
 			"class": "MediaWiki\\Extension\\IPReputation\\Hooks\\Handlers\\AbuseFilterHandler",
-			"services": [ "IPReputationIPoidDataLookup" ]
+			"services": [ "UserNameUtils", "IPReputationIPoidDataLookup" ]
 		}
 	},
 	"Hooks": {
 		"AbuseFilter-builder": "AbuseFilterHandler",
 		"AbuseFilterCustomProtectedVariables": "AbuseFilterHandler",
+		"AbuseFilterGenerateAccountCreationVars": "AbuseFilterHandler",
 		"AbuseFilter-generateUserVars": "AbuseFilterHandler",
 		"AbuseFilter-interceptVariable": "AbuseFilterHandler",
 		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks"

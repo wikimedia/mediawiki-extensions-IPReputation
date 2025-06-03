@@ -15,6 +15,7 @@ use MediaWiki\Permissions\UltimateAuthority;
 use MediaWiki\RecentChanges\RecentChange;
 use MediaWiki\Tests\User\TempUser\TempUserTestTrait;
 use MediaWiki\User\UserFactory;
+use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
 use MockTitleTrait;
@@ -120,9 +121,13 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 		}
 	}
 
-	public function testAbuseFilterHitUsingIPReputationVariablesWhenIPKnown() {
-		// Mock that IPoid knows 1.2.3.4 and provide data used by each IPReputation AbuseFilter variable
-		$ip = '1.2.3.4';
+	/**
+	 * Mocks that IPReputation data exists for the given $ip.
+	 *
+	 * @param string $ip
+	 * @return IPoidResponse The mock data
+	 */
+	private function mockThatIPReputationDataExists( string $ip ): IPoidResponse {
 		$response = IPoidResponse::newFromArray( [
 			'tunnels' => [ 'TUNNEL' ],
 			'risks' => [ 'RISK' ],
@@ -135,40 +140,74 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 			->with( $ip )
 			->willReturn( $response );
 		$this->setService( 'IPReputationIPoidDataLookup', $mockIPoidDataLookup );
+		return $response;
+	}
 
-		// Get the variables for the IP 1.2.3.4
-		RequestContext::getMain()->getRequest()->setIP( $ip );
-		$varHolder = $this->getUserVariablesForUser( $ip );
-
-		// Assert that the IPReputation variables have the expected value
+	/**
+	 * Asserts that the provided {@link IPoidResponse} data is the data used to fill the IPReputation AbuseFilter
+	 * variables.
+	 *
+	 * @param IPoidResponse $response
+	 * @param VariableHolder $varHolder
+	 * @return void
+	 */
+	private function assertThatVariablesMatchIPoidResponseObject(
+		IPoidResponse $response, VariableHolder $varHolder
+	) {
 		$this->assertVariableHasValue( $response->getTunnelOperators(), 'ip_reputation_tunnel_operators', $varHolder );
 		$this->assertVariableHasValue( $response->getRisks(), 'ip_reputation_risk_types', $varHolder );
 		$this->assertVariableHasValue( $response->getProxies(), 'ip_reputation_client_proxies', $varHolder );
 		$this->assertVariableHasValue( $response->getBehaviors(), 'ip_reputation_client_behaviors', $varHolder );
 		$this->assertVariableHasValue( $response->getNumUsersOnThisIP(), 'ip_reputation_client_count', $varHolder );
 		$this->assertVariableHasValue( true, 'ip_reputation_ipoid_known', $varHolder );
+	}
+
+	public function testIPReputationVariablesAreSetWhenIPKnown() {
+		$ip = '1.2.3.4';
+		$response = $this->mockThatIPReputationDataExists( $ip );
+
+		// Get the variables for the IP 1.2.3.4 and assert that the values are correct.
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+		$varHolder = $this->getUserVariablesForUser( $ip );
+		$this->assertThatVariablesMatchIPoidResponseObject( $response, $varHolder );
 
 		// Test that other variables can be fetched as normal with IPReputation installed (specifically that the hook
 		// handler returns early if the variable is not an IPReputation variable).
 		$this->assertVariableHasValue( 'ip', 'user_type', $varHolder );
 	}
 
+	public function testIPReputationVariablesAreSetWhenIPKnownForTemporaryAccount() {
+		// Fix the naming format so that we can test using a temporary account name without having to create
+		// a real temporary account.
+		$this->enableAutoCreateTempUser( [ 'genPattern' => '~$1' ] );
+
+		$ip = '1.2.3.4';
+		$response = $this->mockThatIPReputationDataExists( $ip );
+
+		// Get the variables when using a temporary account performer and assert that the values are correct.
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+		$varHolder = $this->getUserVariablesForUser( '~2025-1' );
+		$this->assertThatVariablesMatchIPoidResponseObject( $response, $varHolder );
+	}
+
+	public function testIPReputationVariablesAreSetWhenCreatingANamedAccount() {
+		$ip = '1.2.3.4';
+		$response = $this->mockThatIPReputationDataExists( $ip );
+
+		// Get the variables when using a temporary account performer and assert that the values are correct.
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+		$createdUser = $this->getTestUser()->getUser();
+		$runVariableGenerator = AbuseFilterServices::getVariableGeneratorFactory()
+			->newRunGenerator( $createdUser, $this->makeMockTitle( 'Test' ) );
+		$varHolder = $runVariableGenerator->getAccountCreationVars( $createdUser, false );
+		$this->assertThatVariablesMatchIPoidResponseObject( $response, $varHolder );
+	}
+
 	public function testIPReputationVariablesForRecentChangeWhenPutIPinRCIsTrue() {
 		$this->overrideConfigValue( MainConfigNames::PutIPinRC, true );
-		// Mock that IPoid knows 1.2.3.4 and provide data used by each IPReputation AbuseFilter variable
+
 		$ip = '1.2.3.4';
-		$response = IPoidResponse::newFromArray( [
-			'tunnels' => [ 'TUNNEL' ],
-			'risks' => [ 'RISK' ],
-			'proxies' => [ 'PROXY' ],
-			'behaviors' => [ 'BEHAVIOUR' ],
-			'client_count' => 123,
-		] );
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( $response );
-		$this->setService( 'IPReputationIPoidDataLookup', $mockIPoidDataLookup );
+		$response = $this->mockThatIPReputationDataExists( $ip );
 
 		$this->disableAutoCreateTempUser();
 		RequestContext::getMain()->getRequest()->setIP( $ip );
@@ -185,16 +224,10 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 		// request IP.
 		RequestContext::getMain()->getRequest()->setIP( '5.6.7.8' );
 
-		// Get the variables when the query is for a RecentChanges entry
+		// Get the variables when the query is for a RecentChanges entry and assert that the variables values
+		// are correct.
 		$varHolder = $this->getUserVariablesForUser( $ip, $recentChange );
-
-		// Assert that the IPReputation variables have the expected value
-		$this->assertVariableHasValue( $response->getTunnelOperators(), 'ip_reputation_tunnel_operators', $varHolder );
-		$this->assertVariableHasValue( $response->getRisks(), 'ip_reputation_risk_types', $varHolder );
-		$this->assertVariableHasValue( $response->getProxies(), 'ip_reputation_client_proxies', $varHolder );
-		$this->assertVariableHasValue( $response->getBehaviors(), 'ip_reputation_client_behaviors', $varHolder );
-		$this->assertVariableHasValue( $response->getNumUsersOnThisIP(), 'ip_reputation_client_count', $varHolder );
-		$this->assertVariableHasValue( true, 'ip_reputation_ipoid_known', $varHolder );
+		$this->assertThatVariablesMatchIPoidResponseObject( $response, $varHolder );
 
 		// Test that other variables can be fetched as normal with IPReputation installed (specifically that the hook
 		// handler returns early if the variable is not an IPReputation variable).
@@ -202,13 +235,8 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testIPReputationVariablesForRecentChangeWhenPutIPinRCIsFalse() {
-		$this->overrideConfigValue( MainConfigNames::PutIPinRC, false );
-
-		$this->setService(
-			'IPReputationIPoidDataLookup', $this->createNoOpMock( IPReputationIPoidDataLookup::class )
-		);
-
 		// Make an edit using an IP while $wgPutIPinRC is false (so the recentchanges entry has no IP)
+		$this->overrideConfigValue( MainConfigNames::PutIPinRC, false );
 		$ip = '1.2.3.4';
 		$this->disableAutoCreateTempUser();
 		RequestContext::getMain()->getRequest()->setIP( $ip );
@@ -221,39 +249,120 @@ class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
 			'rc_this_oldid' => $pageUpdateStatus->getNewRevision()->getId(),
 		] );
 
-		$varHolder = $this->getUserVariablesForUser( $ip, $recentChange );
+		// If no IP is in the recentchanges table, then we should not be able to attempt to fetch IPReputation data.
+		$this->testIPReputationVariablesWhenDataShouldNotBeFetched( $ip, $recentChange );
+	}
 
-		// The variables should not be set as the IP was not in the recentchanges table.
+	/** @dataProvider provideIPReputationVariablesWhenDataShouldNotBeFetched */
+	public function testIPReputationVariablesWhenDataShouldNotBeFetched(
+		string $user, ?RecentChange $recentChange = null
+	) {
+		$this->setService(
+			'IPReputationIPoidDataLookup', $this->createNoOpMock( IPReputationIPoidDataLookup::class )
+		);
+
+		$varHolder = $this->getUserVariablesForUser( $user, $recentChange );
+
 		foreach ( AbuseFilterHandler::SUPPORTED_VARIABLES as $variable ) {
 			$this->assertVariableHasValue( null, $variable, $varHolder );
 		}
 	}
 
-	public function testIPReputationVariablesUnsetWhenUserIsNotIP() {
-		// Mock that IPoid knows 1.2.3.4 and provide data used by each IPReputation AbuseFilter variable
-		$ip = '1.2.3.4';
-		$response = IPoidResponse::newFromArray( [
-			'tunnels' => [ 'TUNNEL' ],
-			'risks' => [ 'RISK' ],
-			'proxies' => [ 'PROXY' ],
-			'behaviors' => [ 'BEHAVIOUR' ],
-			'client_count' => 123,
-		] );
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( $response );
-		$this->setService( 'IPReputationIPoidDataLookup', $mockIPoidDataLookup );
+	public static function provideIPReputationVariablesWhenDataShouldNotBeFetched() {
+		return [
+			'Performer is a named account' => [ 'TestUser' ],
+			'Performer is an IP range' => [ '1.2.3.0/24' ],
+		];
+	}
 
-		// Get the variables for a test user that is using 1.2.3.4 as their IP
-		RequestContext::getMain()->getRequest()->setIP( $ip );
-		$varHolder = $this->getUserVariablesForUser( 'TestUser' );
+	/**
+	 * @dataProvider provideOnAccountCreationWhenIPReputationVariablesShouldNotBeSet
+	 *
+	 * @param bool $autocreated If the created account was autocreated
+	 * @param UserIdentity|null $creator The performer of the account creation. If null, then $createdAccount is used.
+	 * @param UserIdentity|null $createdUser The created user. If null, then a sysop account.
+	 */
+	public function testOnAccountCreationWhenIPReputationVariablesShouldNotBeSet(
+		bool $autocreated, ?UserIdentity $creator = null, ?UserIdentity $createdUser = null
+	): void {
+		// Fix the naming format so that we can test using a temporary account name without having to create
+		// a real temporary account.
+		$this->enableAutoCreateTempUser( [ 'genPattern' => '~$1' ] );
 
-		// Check that the user vars have all IPReputation variables defined with their value as null, as they should
-		// not be set for any named accounts.
+		// Expect no calls to attempt to get data if they should not be used in the AbuseFilter variables.
+		$this->setService(
+			'IPReputationIPoidDataLookup', $this->createNoOpMock( IPReputationIPoidDataLookup::class )
+		);
+
+		$createdUser = $this->getServiceContainer()->getUserFactory()->newFromUserIdentity(
+			$createdUser ?? $this->getTestUser()->getUser()
+		);
+		$creator = $this->getServiceContainer()->getUserFactory()->newFromUserIdentity(
+			$creator ?? $createdUser
+		);
+
+		// Check that the AbuseFilter variables are empty for these conditions.
+		$runVariableGenerator = AbuseFilterServices::getVariableGeneratorFactory()
+			->newRunGenerator( $creator, $this->makeMockTitle( 'Test' ) );
+		$varHolder = $runVariableGenerator->getAccountCreationVars( $createdUser, $autocreated );
 		foreach ( AbuseFilterHandler::SUPPORTED_VARIABLES as $variable ) {
 			$this->assertVariableHasValue( null, $variable, $varHolder );
 		}
+	}
+
+	public static function provideOnAccountCreationWhenIPReputationVariablesShouldNotBeSet() {
+		return [
+			'Account creation is an autocreation of a named user' => [ true, null ],
+			'Account was created by a different registered user' => [
+				false, new UserIdentityValue( 1, 'TestUser' ),
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provideOnAccountCreationWhenIPReputationVariablesShouldBeSet
+	 *
+	 * @param bool $autocreated If the created account was autocreated
+	 * @param UserIdentity $creator The performer of the account creation.
+	 * @param UserIdentity $createdUser The created user.
+	 */
+	public function testOnAccountCreationWhenIPReputationVariablesShouldBeSet(
+		bool $autocreated, UserIdentity $creator, UserIdentity $createdUser
+	): void {
+		// Fix the naming format so that we can test using a temporary account name without having to create
+		// a real temporary account.
+		$this->enableAutoCreateTempUser( [ 'genPattern' => '~$1' ] );
+
+		$ip = '1.2.3.4';
+		$response = $this->mockThatIPReputationDataExists( $ip );
+		RequestContext::getMain()->getRequest()->setIP( $ip );
+
+		$createdUser = $this->getServiceContainer()->getUserFactory()->newFromUserIdentity( $createdUser );
+		$creator = $this->getServiceContainer()->getUserFactory()->newFromUserIdentity( $creator );
+
+		// Check that the AbuseFilter variables are empty for these conditions.
+		$runVariableGenerator = AbuseFilterServices::getVariableGeneratorFactory()
+			->newRunGenerator( $creator, $this->makeMockTitle( 'Test' ) );
+		$varHolder = $runVariableGenerator->getAccountCreationVars( $createdUser, $autocreated );
+
+		$this->assertThatVariablesMatchIPoidResponseObject( $response, $varHolder );
+	}
+
+	public static function provideOnAccountCreationWhenIPReputationVariablesShouldBeSet() {
+		return [
+			'An autocreation of a temporary account' => [
+				true, new UserIdentityValue( 1, '~2025-1' ),
+				new UserIdentityValue( 1, '~2025-1' ),
+			],
+			'A creation of a named account when performer is the new account' => [
+				false, new UserIdentityValue( 1, 'Test' ),
+				new UserIdentityValue( 1, 'Test' ),
+			],
+			'A creation of a named account when performer is the an IP' => [
+				false, UserIdentityValue::newAnonymous( '1.2.3.4' ),
+				new UserIdentityValue( 1, 'Test' ),
+			],
+		];
 	}
 
 	public function testDevsUpdateTheseTests() {

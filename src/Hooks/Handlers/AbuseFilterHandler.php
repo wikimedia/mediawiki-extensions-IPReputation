@@ -5,6 +5,7 @@ namespace MediaWiki\Extension\IPReputation\Hooks\Handlers;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterBuilderHook;
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterCustomProtectedVariablesHook;
+use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterGenerateAccountCreationVarsHook;
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterGenerateUserVarsHook;
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterInterceptVariableHook;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
@@ -12,6 +13,7 @@ use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\RecentChanges\RecentChange;
 use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\User\UserNameUtils;
 use Wikimedia\IPUtils;
 
 // phpcs:disable MediaWiki.NamingConventions.LowerCamelFunctionsName.FunctionName
@@ -21,6 +23,7 @@ use Wikimedia\IPUtils;
  * Registers and provides values for IPReputation AbuseFilter variables.
  */
 class AbuseFilterHandler implements
+	AbuseFilterGenerateAccountCreationVarsHook,
 	AbuseFilterGenerateUserVarsHook,
 	AbuseFilterBuilderHook,
 	AbuseFilterCustomProtectedVariablesHook,
@@ -37,9 +40,11 @@ class AbuseFilterHandler implements
 		'ip_reputation_ipoid_known',
 	];
 
+	private UserNameUtils $userNameUtils;
 	private IPReputationIPoidDataLookup $ipoidDataLookup;
 
-	public function __construct( IPReputationIPoidDataLookup $ipoidDataLookup ) {
+	public function __construct( UserNameUtils $userNameUtils, IPReputationIPoidDataLookup $ipoidDataLookup ) {
+		$this->userNameUtils = $userNameUtils;
 		$this->ipoidDataLookup = $ipoidDataLookup;
 	}
 
@@ -50,10 +55,38 @@ class AbuseFilterHandler implements
 	 */
 	public function onAbuseFilter_generateUserVars( VariableHolder $vars, User $user, ?RecentChange $rc ) {
 		foreach ( self::SUPPORTED_VARIABLES as $variable ) {
+			// Only add the variables if they are not set. They may have been set by
+			// ::onAbuseFilterGenerateAccountCreationVars below and those definitions should take priority.
+			if ( !$vars->varIsSet( $variable ) ) {
+				$vars->setLazyLoadVar(
+					$variable,
+					$this->getMethodForVariable( $variable ),
+					[ 'userIdentity' => $user, 'rc' => $rc, 'action' => 'other' ]
+				);
+			}
+		}
+	}
+
+	/**
+	 * Defines the AbuseFilter IP reputation variables for account creation too.
+	 *
+	 * This is so that we can prevent or flag account creations made from IP addresses which match
+	 * specific IPReputation data. Because the IP address is not disclosed this does not cause
+	 * a privacy problem.
+	 *
+	 * @inheritDoc
+	 */
+	public function onAbuseFilterGenerateAccountCreationVars(
+		VariableHolder $vars, UserIdentity $creator, UserIdentity $createdUser, bool $autocreate, ?RecentChange $rc
+	) {
+		foreach ( self::SUPPORTED_VARIABLES as $variable ) {
 			$vars->setLazyLoadVar(
 				$variable,
 				$this->getMethodForVariable( $variable ),
-				[ 'userIdentity' => $user, 'rc' => $rc ]
+				[
+					'userIdentity' => $creator, 'rc' => $rc, 'action' => 'accountcreation',
+					'createdUser' => $createdUser, 'autocreate' => $autocreate,
+				]
 			);
 		}
 	}
@@ -76,12 +109,7 @@ class AbuseFilterHandler implements
 			return true;
 		}
 
-		// For the time being we are only populating IPReputation variables users editing via an IP address.
-		// We will expand this access to Temporary Accounts and users creating accounts once we can expire
-		// the values of these variables when afl_ip also expires.
-		/** @var UserIdentity $userIdentity */
-		$userIdentity = $parameters['userIdentity'];
-		if ( !IPUtils::isValid( $userIdentity->getName() ) ) {
+		if ( !$this->shouldGenerateVariableValue( $parameters ) ) {
 			$result = null;
 			return false;
 		}
@@ -189,5 +217,49 @@ class AbuseFilterHandler implements
 		} else {
 			return RequestContext::getMain()->getRequest()->getIP();
 		}
+	}
+
+	/**
+	 * Allow IPReputation data only for:
+	 * * Users performing actions while logged out
+	 * * Users performing actions using a temporary account
+	 * * Creation of an account while logged out
+	 * In all other cases, IPReputation data should not be generated.
+	 *
+	 * @param array $parameters The parameters provided to {@link self::onAbuseFilter_interceptVariable}
+	 * @return bool
+	 */
+	private function shouldGenerateVariableValue( array $parameters ): bool {
+		/** @var UserIdentity $userIdentity */
+		$userIdentity = $parameters['userIdentity'];
+
+		// Always exclude autocreations of named accounts.
+		if ( $parameters['action'] === 'accountcreation' && $parameters['autocreate'] ) {
+			/** @var UserIdentity $createdUser */
+			$createdUser = $parameters['createdUser'];
+			if ( !$this->userNameUtils->isTemp( $createdUser->getName() ) ) {
+				return false;
+			}
+		}
+
+		// Allow generation for actions performed by temporary accounts and IPs.
+		if (
+			IPUtils::isValid( $userIdentity->getName() ) ||
+			$this->userNameUtils->isTemp( $userIdentity->getName() )
+		) {
+			return true;
+		}
+
+		// Only allow generation of variables for named accounts if the action is an account creation (excluding
+		// autocreations).
+		if ( $parameters['action'] !== 'accountcreation' || $parameters['autocreate'] ) {
+			return false;
+		}
+
+		// We handled the case of account creations while logged out when the $userIdentity being an IP above.
+		// The account creation can also be performed while logged out if the performer is the same as the creator.
+		/** @var UserIdentity $createdUser */
+		$createdUser = $parameters['createdUser'];
+		return $createdUser->equals( $userIdentity );
 	}
 }
