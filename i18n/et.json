@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"Pikne"
+		]
+	},
+	"ipreputation-desc": "Võimaldab juurdepääsu IP-aadresside maine andmete hankimiseks, logimiseks ja neil andmetel põhinevateks toiminguteks.",
+	"ipreputation-blocked-ip-reputation": "IP-aadress, mida praegu kasutad, on blokeeritud, sest usutavasti on seda hiljuti kasutatud halva kavatsusega.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Kasutaja IP-aadressiga seotud tunnelikäitajate loend ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Kasutaja IP-aadressiga seotud riskide loend ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Kasutaja IP-aadressiga seotud proksiteenuste loend ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Kasutaja IP-aadressiga seotud käitumiste loend ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Kasutaja IP-aadressiga seotud klientide arv ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Kas kasutaja IP-aadress on teenusele IPoid teada ($1)"
+}
