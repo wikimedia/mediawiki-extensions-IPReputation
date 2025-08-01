@@ -7,7 +7,7 @@ use MediaWiki\Config\HashConfig;
 use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Extension\IPReputation\PreAuthenticationProvider;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
-use MediaWiki\Request\WebRequest;
+use MediaWiki\Request\FauxRequest;
 use MediaWiki\Tests\Unit\Auth\AuthenticationProviderTestTrait;
 use MediaWiki\User\User;
 use MediaWiki\WikiMap\WikiMap;
@@ -87,8 +87,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( IPoidResponse::newFromArray( [ 'data' ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -122,8 +122,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( null );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -154,8 +154,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -189,8 +189,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -224,8 +224,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -259,8 +259,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'VPN' ] ] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
@@ -297,8 +297,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			] ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
-		$request = $this->createMock( WebRequest::class );
-		$request->method( 'getIP' )->willReturn( $ip );
+		$request = new FauxRequest();
+		$request->setIP( $ip );
 		$authManager = $this->createMock( AuthManager::class );
 		$authManager->method( 'getRequest' )->willReturn( $request );
 		$this->initProvider(
