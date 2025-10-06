@@ -48,35 +48,12 @@
 			"value": "http://localhost:6035"
 		},
 		"IPReputationIPoidCheckAtAccountCreation": {
-			"description": "Feature flag to enable/disable auditing account creation based on IP reputation data from IPoid service https://wikitech.wikimedia.org/wiki/Service/IPoid. See also $wgIPReputationIPoidCheckAtAccountCreationLogOnly, which defaults to log-only.",
-			"value": true
-		},
-		"IPReputationIPoidCheckAtAccountCreationLogOnly": {
-			"description": "When set to true, only log the block to Logstash and Statsd, don't actually deny account creation.",
+			"description": "Feature flag to enable/disable auditing account creation based on IP reputation data from IPoid service https://wikitech.wikimedia.org/wiki/Service/IPoid.",
 			"value": true
 		},
 		"IPReputationIPoidRequestTimeoutSeconds": {
 			"description": "Number of seconds to use for timeout and connectTimeout options to HTTP request factory when calling IPoid",
 			"value": 2
-		},
-		"IPReputationIPoidDenyAccountCreationRiskTypes": {
-			"description": "List of IPoid risk types that IPReputation will deny account creation for. If IPoid says the IP is associated with the risk type. If any risk types in this array are present in the data from IPoid, we will deny account creation for that IP.",
-			"value": [
-				"UNKNOWN",
-				"CALLBACK_PROXY",
-				"GEO_MISMATCH",
-				"LOGIN_BRUTEFORCE",
-				"TUNNEL",
-				"WEB_SCRAPING"
-			]
-		},
-		"IPReputationIPoidDenyAccountCreationTunnelTypes": {
-			"description": "List of IPoid tunnel types that IPReputation will deny account creation for. If IPoid says the IP is associated with the tunnel type. If the IP has a TUNNEL risk type, and any of the tunnel types in this array are present in the data from IPoid, we will deny account creation for that IP.",
-			"value": [
-				"UNKNOWN",
-				"VPN",
-				"PROXY"
-			]
 		},
 		"IPReputationEnableLoginCaptchaIfIPKnown": {
 			"description": "If the IP is known to IPoid, require a CAPTCHA on Special:UserLogin.",

@@ -4,6 +4,7 @@ namespace MediaWiki\Extension\IPReputation\Tests\Integration;
 
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\HashConfig;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\IPReputation\IPoidResponse;
 use MediaWiki\Extension\IPReputation\PreAuthenticationProvider;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
@@ -46,7 +47,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$metric = $this->getServiceContainer()
 			->getStatsFactory()
 			->withComponent( 'IPReputation' )
-			->getCounter( 'deny_account_creation' );
+			->getCounter( 'log_account_creation' );
 
 		$samples = $metric->getSamples();
 
@@ -78,13 +79,15 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( 0, $metric->getSampleCount() );
 	}
 
-	public function testTestForAccountCreationDenyIfIPMatchButNoRisksOrTunnels() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have no risks of tunnels data
+	/**
+	 * @dataProvider provideTestTestForAccountCreationIPMatch
+	 */
+	public function testTestForAccountCreationIPMatch( $data, $logValue ) {
 		$ip = '1.2.3.4';
 		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
 		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
 			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [ 'data' ] ) );
+			->willReturn( IPoidResponse::newFromArray( $data ) );
 		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
 
 		$request = new FauxRequest();
@@ -95,22 +98,43 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			$provider,
 			new HashConfig( [
 				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'CALLBACK_PROXY', 'UNKNOWN' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
 			] ),
 			null,
 			$authManager
 		);
-		$this->assertStatusNotGood(
+		$this->assertStatusGood(
 			$provider->testForAccountCreation(
 				$this->createMock( User::class ),
 				$this->createMock( User::class ),
 				[]
 			),
-			'Return fatal status if IP matches'
+			'Always expect good status'
 		);
-		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_unknown' => '1' ] );
+		DeferredUpdates::doUpdates();
+		$this->assertCounterIncremented( $logValue );
+	}
+
+	public static function provideTestTestForAccountCreationIPMatch() {
+		return [
+			'no data' => [
+				'data' => [ 'data' ],
+				'logValue' => [
+					'risk_unknown' => '1'
+				],
+			],
+			'risks' => [
+				'data' => [
+					'risks' => [
+						'TUNNEL',
+						'GEO_MISMATCH'
+					],
+				],
+				'logValue' => [
+					'risk_geo_mismatch' => '1',
+					'risk_tunnel' => '1'
+				],
+			]
+		];
 	}
 
 	public function testTestForAccountCreationOnNoIPoidData() {
@@ -142,185 +166,8 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Return good status if no IPoid data.'
 		);
+		DeferredUpdates::doUpdates();
 		$this->assertCounterNotIncremented();
-	}
-
-	public function testTestForAccountCreationWhenIPKnownButNoMatchToBlockedAttributes() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$ip = '1.2.3.4';
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
-		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
-
-		$request = new FauxRequest();
-		$request->setIP( $ip );
-		$authManager = $this->createMock( AuthManager::class );
-		$authManager->method( 'getRequest' )->willReturn( $request );
-		$this->initProvider(
-			$provider,
-			new HashConfig( [
-				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'GEO_MISMATCH' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'VPN' ],
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
-			] ),
-			null,
-			$authManager
-		);
-		$this->assertStatusGood(
-			$provider->testForAccountCreation(
-				$this->createMock( User::class ),
-				$this->createMock( User::class ),
-				[]
-			),
-			'Returns a good status if risk and tunnel types for IP do not match any that are blocked.'
-		);
-		$this->assertCounterNotIncremented();
-	}
-
-	public function testTestForAccountCreationTunnelType() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$ip = '1.2.3.4';
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
-		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
-
-		$request = new FauxRequest();
-		$request->setIP( $ip );
-		$authManager = $this->createMock( AuthManager::class );
-		$authManager->method( 'getRequest' )->willReturn( $request );
-		$this->initProvider(
-			$provider,
-			new HashConfig( [
-				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
-			] ),
-			null,
-			$authManager
-		);
-		$this->assertStatusNotGood(
-			$provider->testForAccountCreation(
-				$this->createMock( User::class ),
-				$this->createMock( User::class ),
-				[]
-			),
-			'Return bad status if IP is a proxy tunnel and configured to deny those types.'
-		);
-		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_tunnel' => '1' ] );
-	}
-
-	public function testTestForAccountCreationTunnelTypeButLogOnly() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$ip = '1.2.3.4';
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'PROXY' ] ] ) );
-		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
-
-		$request = new FauxRequest();
-		$request->setIP( $ip );
-		$authManager = $this->createMock( AuthManager::class );
-		$authManager->method( 'getRequest' )->willReturn( $request );
-		$this->initProvider(
-			$provider,
-			new HashConfig( [
-				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => true,
-			] ),
-			null,
-			$authManager
-		);
-		$this->assertStatusGood(
-			$provider->testForAccountCreation(
-				$this->createMock( User::class ),
-				$this->createMock( User::class ),
-				[]
-			),
-			'Should return a good status if IPReputation is set to log only and not block account creation.'
-		);
-		$this->assertCounterIncremented( [ 'log_only' => '1', 'risk_tunnel' => '1' ] );
-	}
-
-	public function testTestForAccountCreationTunnelTypeAllowVPNIfDesired() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$ip = '1.2.3.4';
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [ 'risks' => [ 'TUNNEL' ], 'tunnels' => [ 'VPN' ] ] ) );
-		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
-
-		$request = new FauxRequest();
-		$request->setIP( $ip );
-		$authManager = $this->createMock( AuthManager::class );
-		$authManager->method( 'getRequest' )->willReturn( $request );
-		$this->initProvider(
-			$provider,
-			new HashConfig( [
-				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'TUNNEL', 'GEO_MISMATCH' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => true,
-			] ),
-			null,
-			$authManager
-		);
-		$this->assertStatusGood(
-			$provider->testForAccountCreation(
-				$this->createMock( User::class ),
-				$this->createMock( User::class ),
-				[]
-			),
-			'Return good status if IP is a VPN tunnel and app is configured to block only proxies.'
-		);
-		$this->assertCounterNotIncremented();
-	}
-
-	public function testTestForAccountCreationRiskTypesConfig() {
-		// Mock the return value from the IPReputationIPoidDataLookup service to have risks and tunnels data
-		$ip = '1.2.3.4';
-		$mockIPoidDataLookup = $this->createMock( IPReputationIPoidDataLookup::class );
-		$mockIPoidDataLookup->method( 'getIPoidDataForIp' )
-			->with( $ip )
-			->willReturn( IPoidResponse::newFromArray( [
-				'risks' => [ 'TUNNEL', 'GEO_MISMATCH' ],
-				'tunnels' => [ 'PROXY' ]
-			] ) );
-		$provider = $this->getObjectUnderTest( $mockIPoidDataLookup );
-
-		$request = new FauxRequest();
-		$request->setIP( $ip );
-		$authManager = $this->createMock( AuthManager::class );
-		$authManager->method( 'getRequest' )->willReturn( $request );
-		$this->initProvider(
-			$provider,
-			new HashConfig( [
-				'IPReputationIPoidCheckAtAccountCreation' => true,
-				'IPReputationIPoidDenyAccountCreationRiskTypes' => [ 'GEO_MISMATCH' ],
-				'IPReputationIPoidDenyAccountCreationTunnelTypes' => [ 'PROXY' ],
-				'IPReputationIPoidCheckAtAccountCreationLogOnly' => false,
-			] ),
-			null,
-			$authManager
-		);
-		$this->assertStatusNotGood(
-			$provider->testForAccountCreation(
-				$this->createMock( User::class ),
-				$this->createMock( User::class ),
-				[]
-			),
-			'Return bad status if IP matches configured risk types'
-		);
-		$this->assertCounterIncremented( [ 'log_only' => '0', 'risk_geo_mismatch' => '1', 'risk_tunnel' => '1' ] );
 	}
 
 	public function testTestForAccountCreationDoNothingWithoutFeatureFlag() {
@@ -339,6 +186,7 @@ class PreAuthenticationProviderTest extends MediaWikiIntegrationTestCase {
 			),
 			'Do nothing if feature flag is off'
 		);
+		DeferredUpdates::doUpdates();
 		$this->assertCounterNotIncremented();
 	}
 

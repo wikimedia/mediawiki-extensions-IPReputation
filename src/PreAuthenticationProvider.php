@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\IPReputation;
 
-use MediaWiki\Api\ApiMessage;
 use MediaWiki\Auth\AbstractPreAuthenticationProvider;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Permissions\PermissionManager;
@@ -34,11 +34,12 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 
 	/** @inheritDoc */
 	public function testForAccountCreation( $user, $creator, array $reqs ) {
-		// If feature flag is off, don't do any checks, let the user proceed.
+		// If feature flag is off, do nothing and return early
 		if ( !$this->config->get( 'IPReputationIPoidCheckAtAccountCreation' ) ) {
 			return StatusValue::newGood();
 		}
 
+		// Return early if user is `ipblock-exempt` as we don't want to log these
 		if (
 			$this->permissionManager->userHasAnyRight(
 				$creator,
@@ -48,91 +49,50 @@ class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 			return StatusValue::newGood();
 		}
 
-		// Override $this->logger to use the IPReputation channel (T385300).
-		$this->logger = LoggerFactory::getInstance( 'IPReputation' );
-
+		// Otherwise, check if the IP is known to ipoid and log if so
 		$ip = $this->manager->getRequest()->getIP();
+		$ipReputationIPoidDataLookup = $this->ipReputationIPoidDataLookup;
+		$statsFactory = $this->statsFactory;
+		$caller = __METHOD__;
+		DeferredUpdates::addCallableUpdate(
+			static function () use (
+				$user,
+				$ip,
+				$ipReputationIPoidDataLookup,
+				$statsFactory,
+				$caller
+			) {
+				$logger = LoggerFactory::getInstance( 'IPReputation' );
+				$data = $ipReputationIPoidDataLookup->getIPoidDataForIp( $ip, $caller );
+				if ( !$data ) {
+					// IPoid doesn't know anything about this IP; return as nothing can be logged
+					return;
+				}
 
-		$data = $this->ipReputationIPoidDataLookup->getIPoidDataForIp( $ip, __METHOD__ );
-		if ( !$data ) {
-			// IPoid doesn't know anything about this IP; let the authentication request proceed.
-			return StatusValue::newGood();
-		}
-
-		$shouldLogOnly = $this->config->get( 'IPReputationIPoidCheckAtAccountCreationLogOnly' );
-
-		$risksToBlock = $this->config->get( 'IPReputationIPoidDenyAccountCreationRiskTypes' );
-		$tunnelTypesToBlock = $this->config->get( 'IPReputationIPoidDenyAccountCreationTunnelTypes' );
-
-		$risks = $data->getRisks();
-		sort( $risks );
-
-		$tunnels = $data->getTunnelOperators() ?? [];
-		sort( $tunnels );
-
-		// Allow for the possibility to exclude VPN users from having account
-		// creation denied, if the only risk type known for the IP is that it's a VPN,
-		// and if config is set up to allow VPN tunnel types.
-		// That would be done with:
-		// $wgIPReputationDenyAccountCreationRiskTypes = [ 'TUNNEL', 'CALLBACK_PROXY', ... ];
-		// $wgIPReputationDenyAccountCreationTunnelTypes = [ 'PROXY', 'UNKNOWN' ];
-		// If the only risk type is a TUNNEL...
-		if (
-			$risks === [ 'TUNNEL' ]
-			// and there are tunnels listed for the IP
-			&& count( $tunnels )
-			// and we have configured TUNNEL as a risk type to block
-			&& in_array( 'TUNNEL', $risksToBlock )
-			// and the configured tunnel types to block are *not* present in the data
-			&& !array_intersect( $tunnelTypesToBlock, $tunnels )
-		) {
-			$this->logger->debug(
-				'Allowing account creation for user {user} as IP {ip} is known to IPoid '
-				. 'with only non-blocked tunnels ({tunnelTypes})',
-				[
-					'user' => $user->getName(),
-					'ip' => $ip,
-					'tunnelTypes' => implode( ' ', $tunnels ),
-					'IPoidData' => json_encode( $data ),
-				]
-			);
-			return StatusValue::newGood();
-		}
-
-		// Otherwise, check for other risks.
-		$blockedRisks = array_intersect( $risksToBlock, $risks );
-		if ( $blockedRisks ) {
-			$prefixText = $shouldLogOnly ? '[log only] Would have blocked ' : 'Blocking ';
-			$this->logger->notice(
-				$prefixText . 'account creation for user {user} as IP {ip} is known to IPoid '
-				. 'with risks {riskTypes} (blocked due to {blockedRiskTypes})',
-				[
-					'user' => $user->getName(),
-					'ip' => $ip,
-					'riskTypes' => implode( ' ', $risks ),
-					'blockedRiskTypes' => implode( ' ', $blockedRisks ),
-					'IPoidData' => json_encode( $data ),
-				]
-			);
-
-			$metric = $this->statsFactory->withComponent( 'IPReputation' )
-				->getCounter( 'deny_account_creation' )
-				->setLabel( 'wiki', WikiMap::getCurrentWikiId() )
-				->setLabel( 'log_only', $shouldLogOnly ? '1' : '0' );
-			foreach ( $risks as $risk ) {
-				// ::setLabel only takes strings, so we cannot pass the array of risks in one call. Separating the
-				// risks such that each risk is a different label should also allow better filtering over
-				$metric->setLabel( 'risk_' . strtolower( $risk ), '1' );
+				$risks = $data->getRisks();
+				sort( $risks );
+				$logger->notice(
+					'Account creation for user {user} is using IP {ip} that is known to IPoid with risks {riskTypes}',
+					[
+						'user' => $user->getName(),
+						'ip' => $ip,
+						'riskTypes' => implode( ' ', $risks ),
+						'IPoidData' => json_encode( $data ),
+					]
+				);
+				$metric = $statsFactory->withComponent( 'IPReputation' )
+					->getCounter( 'log_account_creation' )
+					->setLabel( 'wiki', WikiMap::getCurrentWikiId() );
+				foreach ( $risks as $risk ) {
+					// ::setLabel only takes strings, so we cannot pass the array of risks in one call. Separating
+					// the risks such that each risk is a different label should also allow better filtering
+					$metric->setLabel( 'risk_' . strtolower( $risk ), '1' );
+				}
+				$metric->increment();
 			}
-			$metric->increment();
+		);
 
-			if ( $shouldLogOnly ) {
-				return StatusValue::newGood();
-			}
-
-			return StatusValue::newFatal( ApiMessage::create( 'ipreputation-blocked-ip-reputation', 'autoblocked' ) );
-		}
-
+		// This is a log-only function; status should always be good
 		return StatusValue::newGood();
 	}
 }
