@@ -56,6 +56,17 @@ class IPReputationIPoidDataLookup {
 			// relatively quickly.
 			$this->cache::TTL_HOUR,
 			function () use ( $ip, $caller ) {
+				// If IPoid URL isn't configured, then raise a warning and return that no data was found.
+				$baseUrl = $this->options->get( 'IPReputationIPoidUrl' );
+				if ( !$baseUrl ) {
+					$this->logger->warning(
+						'IPReputation attempted to query IPoid but the IPoid URL is not ' .
+						'configured when checking IP for {caller}',
+						[ 'caller' => $caller ]
+					);
+					// Don't cache this.
+					return false;
+				}
 				$start = microtime( true );
 				$ipoidData = $this->getIPoidDataForIPInternal( $ip, $caller );
 				$delay = microtime( true ) - $start;
@@ -93,18 +104,7 @@ class IPReputationIPoidDataLookup {
 	 *   cached and interpreted as null for other code.
 	 */
 	private function getIPoidDataForIPInternal( string $ip, string $caller ) {
-		// If IPoid URL isn't configured, then raise a warning and return that no data was found.
 		$baseUrl = $this->options->get( 'IPReputationIPoidUrl' );
-		if ( !$baseUrl ) {
-			$this->logger->warning(
-				'IPReputation attempted to query IPoid but the IPoid URL is not ' .
-				'configured when checking IP for {caller}',
-				[ 'caller' => $caller ]
-			);
-			// Don't cache this.
-			return false;
-		}
-
 		$timeout = $this->options->get( 'IPReputationIPoidRequestTimeoutSeconds' );
 		// Convert IPv6 to lowercase, to match IPoid storage format.
 		$url = $baseUrl . '/feed/v1/ip/' . IPUtils::prettifyIP( $ip );
