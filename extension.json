@@ -10,6 +10,9 @@
 	"requires": {
 		"MediaWiki": ">= 1.46"
 	},
+	"AutoloadClasses": {
+		"MediaWiki\\IPReputation\\Maintenance\\GetIPReputationData": "maintenance/GetIPReputationData.php"
+	},
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\IPReputation\\": "src/"
 	},
