@@ -4,7 +4,6 @@ namespace MediaWiki\Extension\IPReputation\Tests\Integration\Hooks\Handlers;
 
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\AbuseFilter\AbuseFilterServices;
-use MediaWiki\Extension\AbuseFilter\Tests\Integration\FilterFromSpecsTestTrait;
 use MediaWiki\Extension\AbuseFilter\Variables\LazyLoadedVariable;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\IPReputation\Hooks\Handlers\AbuseFilterHandler;
@@ -25,7 +24,6 @@ use MockTitleTrait;
  * @group Database
  */
 class AbuseFilterHandlerTest extends MediaWikiIntegrationTestCase {
-	use FilterFromSpecsTestTrait;
 	use MockTitleTrait;
 	use TempUserTestTrait;
 
