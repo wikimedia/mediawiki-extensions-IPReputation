@@ -11,12 +11,10 @@ use MediaWiki\Page\PageIdentity;
 
 class ConfirmEditHandler implements ConfirmEditTriggersCaptchaHook {
 
-	private Config $config;
-	private IPReputationIPoidDataLookup $ipoidDataLookup;
-
-	public function __construct( Config $config, IPReputationIPoidDataLookup $ipoidDataLookup ) {
-		$this->config = $config;
-		$this->ipoidDataLookup = $ipoidDataLookup;
+	public function __construct(
+		private readonly Config $config,
+		private readonly IPReputationIPoidDataLookup $ipoidDataLookup,
+	) {
 	}
 
 	public function onConfirmEditTriggersCaptcha( string $action, ?PageIdentity $page, bool &$result ) {

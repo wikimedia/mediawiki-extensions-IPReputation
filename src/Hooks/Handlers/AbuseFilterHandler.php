@@ -40,12 +40,10 @@ class AbuseFilterHandler implements
 		'ip_reputation_ipoid_known',
 	];
 
-	private UserNameUtils $userNameUtils;
-	private IPReputationIPoidDataLookup $ipoidDataLookup;
-
-	public function __construct( UserNameUtils $userNameUtils, IPReputationIPoidDataLookup $ipoidDataLookup ) {
-		$this->userNameUtils = $userNameUtils;
-		$this->ipoidDataLookup = $ipoidDataLookup;
+	public function __construct(
+		private readonly UserNameUtils $userNameUtils,
+		private readonly IPReputationIPoidDataLookup $ipoidDataLookup,
+	) {
 	}
 
 	/**

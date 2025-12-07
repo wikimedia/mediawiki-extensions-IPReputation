@@ -27,28 +27,15 @@ class IPReputationIPoidDataLookup {
 		'IPReputationIPoidRequestTimeoutSeconds',
 	];
 
-	private ServiceOptions $options;
-	private HttpRequestFactory $httpRequestFactory;
-	private WANObjectCache $cache;
-	private FormatterFactory $formatterFactory;
-	private StatsFactory $statsFactory;
-	private LoggerInterface $logger;
-
 	public function __construct(
-		ServiceOptions $options,
-		FormatterFactory $formatterFactory,
-		HttpRequestFactory $httpRequestFactory,
-		StatsFactory $statsFactory,
-		WANObjectCache $cache,
-		LoggerInterface $logger
+		private readonly ServiceOptions $options,
+		private readonly FormatterFactory $formatterFactory,
+		private readonly HttpRequestFactory $httpRequestFactory,
+		private readonly StatsFactory $statsFactory,
+		private readonly WANObjectCache $cache,
+		private readonly LoggerInterface $logger,
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
-		$this->options = $options;
-		$this->formatterFactory = $formatterFactory;
-		$this->httpRequestFactory = $httpRequestFactory;
-		$this->statsFactory = $statsFactory;
-		$this->cache = $cache;
-		$this->logger = $logger;
 	}
 
 	/**

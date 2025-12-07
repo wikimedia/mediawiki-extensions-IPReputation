@@ -18,18 +18,11 @@ use Wikimedia\Stats\StatsFactory;
  */
 class PreAuthenticationProvider extends AbstractPreAuthenticationProvider {
 
-	private IPReputationIPoidDataLookup $ipReputationIPoidDataLookup;
-	private StatsFactory $statsFactory;
-	private PermissionManager $permissionManager;
-
 	public function __construct(
-		IPReputationIPoidDataLookup $ipReputationIPoidDataLookup,
-		StatsFactory $statsFactory,
-		PermissionManager $permissionManager
+		private readonly IPReputationIPoidDataLookup $ipReputationIPoidDataLookup,
+		private readonly StatsFactory $statsFactory,
+		private readonly PermissionManager $permissionManager,
 	) {
-		$this->ipReputationIPoidDataLookup = $ipReputationIPoidDataLookup;
-		$this->statsFactory = $statsFactory;
-		$this->permissionManager = $permissionManager;
 	}
 
 	/** @inheritDoc */
