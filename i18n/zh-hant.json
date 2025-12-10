@@ -5,5 +5,11 @@
 		]
 	},
 	"ipreputation-desc": "提供取得、記錄、和操作 IP 信譽資料的存取權限。",
-	"ipreputation-blocked-ip-reputation": "您目前使用的 IP 位址遭到封鎖，因為此位址近期似乎有濫用的行為。"
+	"ipreputation-blocked-ip-reputation": "您目前使用的 IP 位址遭到封鎖，因為此位址近期似乎有濫用的行為。",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "使用者所使用 IP 相關通道運營商清單（$1）",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "使用者所使用 IP 相關風險清單（$1）",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "使用者所使用 IP 相關代理服務清單（$1）",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "使用者所使用 IP 相關行為清單（$1）",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "使用者所使用 IP 相關客戶端數量（$1）",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "使用者所使用 IP 是否為 IPoid 服務所知（$1）"
 }
