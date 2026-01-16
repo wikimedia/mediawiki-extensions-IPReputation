@@ -5,7 +5,7 @@ namespace MediaWiki\Extension\IPReputation\Tests\Integration;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Config\HashConfig;
 use MediaWiki\Deferred\DeferredUpdates;
-use MediaWiki\Extension\IPReputation\IPoidResponse;
+use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use MediaWiki\Extension\IPReputation\PreAuthenticationProvider;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Request\FauxRequest;

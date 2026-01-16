@@ -2,11 +2,11 @@
 
 namespace MediaWiki\Extension\IPReputation\Tests\Unit;
 
-use MediaWiki\Extension\IPReputation\IPoidResponse;
+use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use MediaWikiUnitTestCase;
 
 /**
- * @covers \MediaWiki\Extension\IPReputation\IPoidResponse
+ * @covers \MediaWiki\Extension\IPReputation\IPoid\IPoidResponse
  */
 class IPoidResponseTest extends MediaWikiUnitTestCase {
 
@@ -46,7 +46,7 @@ class IPoidResponseTest extends MediaWikiUnitTestCase {
 					'risks' => [ 'GEO_MISMATCH' ],
 					'countries' => 2,
 				]
-			]
+			],
 		];
 	}
 }

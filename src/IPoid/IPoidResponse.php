@@ -1,6 +1,6 @@
 <?php
 
-namespace MediaWiki\Extension\IPReputation;
+namespace MediaWiki\Extension\IPReputation\IPoid;
 
 use JsonSerializable;
 
@@ -9,66 +9,40 @@ use JsonSerializable;
  */
 class IPoidResponse implements JsonSerializable {
 
-	/** @var string[]|null */
-	private ?array $behaviors;
-
-	/** @var string[] */
-	private array $risks;
-
-	/** @var string[]|null */
-	private ?array $tunnelOperators;
-
-	/** @var string[]|null */
-	private ?array $proxies;
-
-	private ?int $numUsersOnThisIP;
-	private ?int $countries;
-
 	/**
-	 * @param string[]|null $behaviors
 	 * @param string[] $risks
+	 * @param string[]|null $behaviors
 	 * @param string[]|null $tunnelOperators
 	 * @param string[]|null $proxies
 	 * @param int|null $numUsersOnThisIP
 	 * @param int|null $countries
 	 */
 	private function __construct(
-		?array $behaviors,
-		array $risks,
-		?array $tunnelOperators,
-		?array $proxies,
-		?int $numUsersOnThisIP,
-		?int $countries
+		private array $risks,
+		private ?array $behaviors = null,
+		private ?array $tunnelOperators = null,
+		private ?array $proxies = null,
+		private ?int $numUsersOnThisIP = null,
+		private ?int $countries = null,
 	) {
-		$this->behaviors = $behaviors;
-		$this->risks = $risks;
-		$this->tunnelOperators = $tunnelOperators;
-		$this->proxies = $proxies;
-		$this->numUsersOnThisIP = $numUsersOnThisIP;
-		$this->countries = $countries;
 	}
 
 	/**
 	 * Convert raw data from the IPoid service into an {@link IPoidResponse} object.
 	 *
-	 * @param array $data IP data returned by IPInfo
+	 * @param array $data IP data returned by {@link IPReputationIPoidDataLookup::getIPoidDataForIp}
 	 *
 	 * @return self
 	 * @internal For use by {@link IPReputationIPoidDataLookup::getIPoidDataForIp} and tests
 	 */
 	public static function newFromArray( array $data ): IPoidResponse {
-		if ( !isset( $data['risks'] ) || !$data['risks'] ) {
-			// 'risks' should always be set and populated, but if not set to 'UNKNOWN'.
-			$data['risks'] = [ 'UNKNOWN' ];
-		}
-
-		return new IPoidResponse(
-			$data['behaviors'] ?? null,
-			$data['risks'],
-			$data['tunnels'] ?? null,
-			$data['proxies'] ?? null,
-			$data['client_count'] ?? null,
-			$data['countries'] ?? null
+		return new self(
+			risks: $data['risks'] ?? [ 'UNKNOWN' ],
+			behaviors: $data['behaviors'] ?? null,
+			tunnelOperators: $data['tunnels'] ?? null,
+			proxies: $data['proxies'] ?? null,
+			numUsersOnThisIP: $data['client_count'] ?? null,
+			countries: $data['countries'] ?? null,
 		);
 	}
 

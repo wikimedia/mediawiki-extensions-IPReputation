@@ -46,6 +46,10 @@
 		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks"
 	},
 	"config": {
+		"IPReputationDataProvider": {
+			"description": "Name of the provider to use for retrieving IP reputation data. Valid values: \"nodejs_ipoid\". If not set, the provider will always return null for IP reputation lookups.",
+			"value": null
+		},
 		"IPReputationIPoidUrl": {
 			"description": "URL to access IPoid service",
 			"value": "http://localhost:6035"

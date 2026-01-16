@@ -5,7 +5,7 @@ namespace MediaWiki\Extension\IPReputation\Tests\Integration\Hooks\Handlers;
 use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\ConfirmEdit\CaptchaTriggers;
 use MediaWiki\Extension\ConfirmEdit\SimpleCaptcha\SimpleCaptcha;
-use MediaWiki\Extension\IPReputation\IPoidResponse;
+use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWikiIntegrationTestCase;
 

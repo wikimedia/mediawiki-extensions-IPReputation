@@ -1,6 +1,9 @@
 <?php
 
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Extension\IPReputation\IPoid\IPoidDataFetcher;
+use MediaWiki\Extension\IPReputation\IPoid\NodeJsIPoidDataFetcher;
+use MediaWiki\Extension\IPReputation\IPoid\NullDataFetcher;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
@@ -15,16 +18,31 @@ return [
 		MediaWikiServices $services
 	): IPReputationIPoidDataLookup {
 		return new IPReputationIPoidDataLookup(
-			new ServiceOptions(
-				IPReputationIPoidDataLookup::CONSTRUCTOR_OPTIONS,
-				$services->getMainConfig()
-			),
-			$services->getFormatterFactory(),
-			$services->getHttpRequestFactory(),
 			$services->getStatsFactory(),
 			$services->getMainWANObjectCache(),
-			LoggerFactory::getInstance( 'IPReputation' )
+			$services->get( '_IPReputationIPoidDataFetcher' )
 		);
 	},
+
+	'_IPReputationIPoidDataFetcher' => static function (
+		MediaWikiServices $services
+	): IPoidDataFetcher {
+		$config = $services->getMainConfig();
+		$dataProvider = $services->getMainConfig()->get( 'IPReputationDataProvider' );
+		$ipoidUrl = $services->getMainConfig()->get( 'IPReputationIPoidUrl' );
+		$logger = LoggerFactory::getInstance( 'IPReputation' );
+		if ( !$ipoidUrl ) {
+			return new NullDataFetcher( $logger );
+		}
+		return match ( $dataProvider ) {
+			'nodejs_ipoid' => new NodeJsIPoidDataFetcher(
+				new ServiceOptions( NodeJsIPoidDataFetcher::CONSTRUCTOR_OPTIONS, $config ),
+				$services->getHttpRequestFactory(),
+				$services->getFormatterFactory(),
+				$logger
+			),
+			default => new NullDataFetcher( $logger )
+		};
+	}
 ];
 // @codeCoverageIgnoreEnd

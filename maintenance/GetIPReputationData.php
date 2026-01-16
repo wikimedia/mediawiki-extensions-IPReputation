@@ -30,7 +30,7 @@ class GetIPReputationData extends Maintenance {
 		}
 		/** @var IPReputationIPoidDataLookup $IPReputationIPoidDataLookup */
 		$IPReputationIPoidDataLookup = $this->getServiceContainer()->getService( 'IPReputationIPoidDataLookup' );
-		$result = $IPReputationIPoidDataLookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$result = $IPReputationIPoidDataLookup->getIPoidDataForIp( $ip, __METHOD__, false );
 		if ( !$result ) {
 			$this->output( "No result found" . PHP_EOL );
 			return;
