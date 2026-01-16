@@ -35,6 +35,12 @@
 				"UserNameUtils",
 				"IPReputationIPoidDataLookup"
 			]
+		},
+		"GetSecurityLogContextHandler": {
+			"class": "MediaWiki\\Extension\\IPReputation\\Hooks\\Handlers\\GetSecurityLogContextHandler",
+			"services": [
+				"IPReputationIPoidDataLookup"
+			]
 		}
 	},
 	"Hooks": {
@@ -43,7 +49,8 @@
 		"AbuseFilterGenerateAccountCreationVars": "AbuseFilterHandler",
 		"AbuseFilter-generateUserVars": "AbuseFilterHandler",
 		"AbuseFilter-interceptVariable": "AbuseFilterHandler",
-		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks"
+		"ConfirmEditTriggersCaptcha": "ConfirmEditHooks",
+		"GetSecurityLogContext": "GetSecurityLogContextHandler"
 	},
 	"config": {
 		"IPReputationDataProvider": {
