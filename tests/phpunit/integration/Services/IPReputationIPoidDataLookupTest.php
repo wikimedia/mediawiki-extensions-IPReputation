@@ -19,6 +19,7 @@ use Wikimedia\Stats\StatsUtils;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup
+ * @covers \MediaWiki\Extension\IPReputation\IPoid\OpenSearchIPoidDataFetcher
  * @covers \MediaWiki\Extension\IPReputation\IPoid\NodeJsIPoidDataFetcher
  */
 class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
@@ -128,6 +129,18 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 							$options
 						);
 						break;
+					case 'opensearch_ipoid':
+						$this->assertSame( "http://localhost:6035/ipoid/_search", $url );
+						$postArgs = '{"query":{"bool":{"filter":[{"term":{"ip":"1.2.3.4"}}]}}}';
+						$this->assertArrayEquals( [
+							$postArgs,
+							'method' => 'POST',
+							'timeout' => 10,
+							'sslVerifyCert' => true,
+							'sslVerifyHost' => true,
+							'connectTimeout' => 1,
+						], $options );
+						break;
 				}
 				return $mwHttpRequest;
 			} );
@@ -157,6 +170,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 
 	public function provideIPoidBackendType(): array {
 		return [
+			'OpenSearch IPoid' => [ 'opensearch_ipoid' ],
 			'NodeJS IPoid' => [ 'nodejs_ipoid' ],
 		];
 	}
@@ -268,6 +282,104 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			$this->getObjectUnderTest()->getIPoidDataForIp(
 				'1.2.3.4', __METHOD__
 			)->jsonSerialize(),
+			'Should return array from IPoid if response is valid and the IP is known to IPoid'
+		);
+		$this->assertTimingObserved( __METHOD__ );
+	}
+
+	public function testGetIPoidDataForIpWhenOpenSearchIPoidHasNoMatch() {
+		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
+		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
+		$status = new StatusValue();
+		$status->setOK( true );
+		$mwHttpRequest->method( 'execute' )
+			->willReturn( $status );
+		$mwHttpRequest->method( 'getStatus' )
+			->willReturn( 200 );
+		$mwHttpRequest->method( 'getContent' )
+			->willReturn( json_encode( [ 'hits' => [
+				'total' => [
+					'value' => 0
+				],
+			] ] ) );
+		$this->installMockHttp( $mwHttpRequest );
+
+		// Expect no logs if the IP is not known to IPoid
+		$mockLogger = $this->createNoOpMock( LoggerInterface::class );
+
+		$this->assertNull(
+			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
+			),
+			'Should return null if IP was not present in response from IPoid'
+		);
+		$this->assertTimingObserved( __METHOD__ );
+	}
+
+	public function testGetOpenSearchIPoidDataForIpOnArrayResponse() {
+		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
+		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
+		$status = new StatusValue();
+		$status->setOK( true );
+		$mwHttpRequest->method( 'execute' )
+			->willReturn( $status );
+		$mwHttpRequest->method( 'getContent' )
+			->willReturn( json_encode( [ 'hits' => [
+				'total' => [
+					'value' => 1
+				],
+				'hits' => [
+					[
+						'_source' => [
+							'risks' => [ 'TUNNEL' ],
+							'organization' => 'ACME',
+							'client' => [
+								'count' => 5,
+								'types' => [ 'VPN' ],
+								'behaviors' => [ 'TOR' ]
+							],
+							'location' => [
+								'city' => 'Dublin',
+								'country' => 'IE'
+							],
+							'tunnels' => [
+								[
+									'operator' => 'TEST_PROXY',
+									'type' => 'PROXY',
+									'anonymous' => true,
+								],
+								[
+									'operator' => 'TEST_VPN',
+									'type' => 'VPN',
+									'anonymous' => true,
+								],
+								[
+									'type' => 'FOO',
+									'anonymous' => false,
+								]
+							]
+						]
+					]
+				] ]
+			] ) );
+		$this->installMockHttp( $mwHttpRequest );
+
+		$expected = IPoidResponse::newFromArray( [
+			'risks' => [ 'TUNNEL' ],
+			'tunnels' => [ 'TEST_PROXY', 'TEST_VPN' ],
+			'client_count' => 5,
+			'organization' => 'ACME',
+			'city' => 'Dublin',
+			'country' => 'IE',
+			'behaviors' => [ 'TOR' ],
+			'connectionTypes' => [ 'VPN' ],
+		] );
+		$actual = $this->getObjectUnderTest()->getIPoidDataForIp(
+			'1.2.3.4', __METHOD__
+		);
+		$this->assertArrayEquals(
+			$expected->jsonSerialize(),
+			$actual->jsonSerialize(),
 			'Should return array from IPoid if response is valid and the IP is known to IPoid'
 		);
 		$this->assertTimingObserved( __METHOD__ );

@@ -4,6 +4,7 @@ use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidDataFetcher;
 use MediaWiki\Extension\IPReputation\IPoid\NodeJsIPoidDataFetcher;
 use MediaWiki\Extension\IPReputation\IPoid\NullDataFetcher;
+use MediaWiki\Extension\IPReputation\IPoid\OpenSearchIPoidDataFetcher;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
@@ -37,6 +38,12 @@ return [
 		return match ( $dataProvider ) {
 			'nodejs_ipoid' => new NodeJsIPoidDataFetcher(
 				new ServiceOptions( NodeJsIPoidDataFetcher::CONSTRUCTOR_OPTIONS, $config ),
+				$services->getHttpRequestFactory(),
+				$services->getFormatterFactory(),
+				$logger
+			),
+			'opensearch_ipoid' => new OpenSearchIPoidDataFetcher(
+				new ServiceOptions( OpenSearchIPoidDataFetcher::CONSTRUCTOR_OPTIONS, $config ),
 				$services->getHttpRequestFactory(),
 				$services->getFormatterFactory(),
 				$logger
