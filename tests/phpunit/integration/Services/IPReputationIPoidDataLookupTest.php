@@ -104,6 +104,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 
 	public function testGetIPoidDataForIpOnNonArrayResponse() {
 		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationDeveloperMode', false );
 		$ip = '1.2.3.4';
 
 		// Define a mock MWHttpRequest that will be returned by a mock HttpRequestFactory,
