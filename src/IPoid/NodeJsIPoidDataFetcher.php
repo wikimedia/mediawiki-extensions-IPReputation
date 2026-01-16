@@ -81,6 +81,10 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 		// We have a match and valid data structure;
 		// return the values for this IP for storage in the cache.
 		$raw = $data[$ip];
+		$raw['organization'] = $raw['org'] ?? null;
+		$raw['city'] = $raw['conc_city'] ?? null;
+		$raw['country'] = $raw['conc_country'] ?? $raw['location_country'] ?? null;
+		$raw['connectionTypes'] = $raw['types'] ?? null;
 		return $raw;
 	}
 

@@ -27,6 +27,10 @@ class IPoidResponseTest extends MediaWikiUnitTestCase {
 					'behaviors' => null, 'risks' => [ 'UNKNOWN' ],
 					'tunnelOperators' => null, 'proxies' => null, 'numUsersOnThisIP' => null,
 					'countries' => null,
+					'connectionTypes' => null,
+					'organization' => null,
+					'city' => null,
+					'country' => null,
 				]
 			],
 			'Input array contains varied data' => [
@@ -36,7 +40,11 @@ class IPoidResponseTest extends MediaWikiUnitTestCase {
 					'proxies' => [ '3_PROXY', '1_PROXY' ],
 					'client_count' => 10,
 					'risks' => [ 'GEO_MISMATCH' ],
+					'city' => 'Berlin',
+					'country' => 'DE',
+					'organization' => 'ACME',
 					'countries' => 2,
+					'connectionTypes' => null,
 				],
 				[
 					'behaviors' => [ 'TOR_PROXY_USER' ],
@@ -44,7 +52,11 @@ class IPoidResponseTest extends MediaWikiUnitTestCase {
 					'proxies' => [ '3_PROXY', '1_PROXY' ],
 					'numUsersOnThisIP' => 10,
 					'risks' => [ 'GEO_MISMATCH' ],
+					'city' => 'Berlin',
+					'country' => 'DE',
+					'organization' => 'ACME',
 					'countries' => 2,
+					'connectionTypes' => null,
 				]
 			],
 		];
