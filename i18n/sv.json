@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Stefan2255"
+		]
+	},
+	"ipreputation-desc": "Ge åtkomst för att hämta, logga och agera utifrån IP-ryktesdata.",
+	"ipreputation-blocked-ip-reputation": "IP-adressen som du använder för närvarande har blockerats eftersom man tror att den nyligen har använts för otillåtna ändamål."
+}
