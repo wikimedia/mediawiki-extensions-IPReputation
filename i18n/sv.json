@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"Stefan2255"
+		]
+	},
+	"ipreputation-desc": "Ge åtkomst för att hämta, logga och agera utifrån IP-ryktesdata.",
+	"ipreputation-blocked-ip-reputation": "IP-adressen som du använder för närvarande har blockerats eftersom man tror att den nyligen har använts för otillåtna ändamål.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Lista över tunneloperatörer associerade med den IP-adress som används av användaren ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Lista över risker förknippade med den IP-adress som används av användaren ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Lista över proxytjänster associerade med IP-adressen som används av användaren ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Lista över beteenden associerade med den IP-adress som används av användaren ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Antal klienter associerade med IP som används av användaren ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Är IP-adressen som används av användaren känd av IPoid-tjänsten ($1)"
+}
