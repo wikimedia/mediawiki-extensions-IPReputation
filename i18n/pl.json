@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"Woytecr"
+		]
+	},
+	"ipreputation-desc": "Umożliwia dostęp do danych dotyczących reputacji adresów IP, ich rejestrowanie i podejmowanie działań na ich podstawie.",
+	"ipreputation-blocked-ip-reputation": "Obecnie wykorzystywany przez Ciebie adres IP został zablokowany, gdyż prawdopodobnie został niedawno wykorzystywany do nadużyć.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Lista operatorów tuneli powiązanych z adresem IP używanym przez użytkownika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Lista zagrożeń powiązanych z adresem IP używanym przez użytkownika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Lista usług proxy powiązanych z adresem IP używanym przez użytkownika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Lista zachowań powiązanych z adresem IP używanym przez użytkownika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Lista klientów powiązanych z adresem IP używanym przez użytkownika ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Czy adres IP używany przez użytkownika jest znany usłudze IPoid ($1)"
+}
