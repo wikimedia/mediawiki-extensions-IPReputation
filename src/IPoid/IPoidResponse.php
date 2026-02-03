@@ -15,6 +15,7 @@ class IPoidResponse implements JsonSerializable {
 	 * @param string[]|null $connectionTypes
 	 * @param string[]|null $tunnelOperators
 	 * @param string[]|null $proxies
+	 * @param string[]|null $tagMetadataCategories
 	 * @param int|null $numUsersOnThisIP
 	 * @param int|null $countries
 	 * @param string|null $organization
@@ -27,6 +28,7 @@ class IPoidResponse implements JsonSerializable {
 		private ?array $connectionTypes = null,
 		private ?array $tunnelOperators = null,
 		private ?array $proxies = null,
+		private ?array $tagMetadataCategories = null,
 		private ?int $numUsersOnThisIP = null,
 		private ?int $countries = null,
 		private ?string $organization = null,
@@ -50,6 +52,7 @@ class IPoidResponse implements JsonSerializable {
 			connectionTypes: $data['connectionTypes'] ?? null,
 			tunnelOperators: $data['tunnels'] ?? null,
 			proxies: $data['proxies'] ?? null,
+			tagMetadataCategories: $data['tag_metadata_categories'] ?? null,
 			numUsersOnThisIP: $data['client_count'] ?? null,
 			countries: $data['countries'] ?? null,
 			organization: $data['organization'] ?? null,
@@ -86,6 +89,13 @@ class IPoidResponse implements JsonSerializable {
 		return $this->proxies;
 	}
 
+	/**
+	 * @return string[]|null
+	 */
+	public function getTagMetadataCategories(): ?array {
+		return $this->tagMetadataCategories;
+	}
+
 	public function getNumUsersOnThisIP(): ?int {
 		return $this->numUsersOnThisIP;
 	}
@@ -120,6 +130,7 @@ class IPoidResponse implements JsonSerializable {
 			'connectionTypes' => $this->getConnectionTypes(),
 			'tunnelOperators' => $this->getTunnelOperators(),
 			'proxies' => $this->getProxies(),
+			'tagMetadataCategories' => $this->getTagMetadataCategories(),
 			'numUsersOnThisIP' => $this->getNumUsersOnThisIP(),
 			'countries' => $this->getCountries(),
 			'organization' => $this->getOrganization(),
