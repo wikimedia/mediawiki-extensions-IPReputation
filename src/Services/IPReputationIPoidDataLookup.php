@@ -5,6 +5,7 @@ namespace MediaWiki\Extension\IPReputation\Services;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidDataFetcher;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use Wikimedia\IPUtils;
+use Wikimedia\LightweightObjectStore\ExpirationAwareness;
 use Wikimedia\ObjectCache\WANObjectCache;
 use Wikimedia\Stats\StatsFactory;
 
@@ -16,11 +17,35 @@ use Wikimedia\Stats\StatsFactory;
  */
 class IPReputationIPoidDataLookup {
 
+	/**
+	 * Default cache TTL in seconds (1 hour)
+	 */
+	private const DEFAULT_TTL = ExpirationAwareness::TTL_HOUR;
+	/**
+	 * Default cache TTL in seconds (5 minutes) to use for stale cache values
+	 * when the backend is unavailable
+	 */
+	private const DEFAULT_STALE_TTL = ExpirationAwareness::TTL_MINUTE * 5;
+
+	private int $ttl;
+	private int $staleTtl;
+
+	/**
+	 * @param StatsFactory $statsFactory
+	 * @param WANObjectCache $cache
+	 * @param IPoidDataFetcher $ipoidDataFetcher
+	 * @param int $ttl Cache TTL in seconds.
+	 * @param int $staleTtl TTL for stale data retrieved from cache
+	 */
 	public function __construct(
 		private readonly StatsFactory $statsFactory,
 		private readonly WANObjectCache $cache,
-		private readonly IPoidDataFetcher $ipoidDataFetcher
+		private readonly IPoidDataFetcher $ipoidDataFetcher,
+		int $ttl = self::DEFAULT_TTL,
+		int $staleTtl = self::DEFAULT_STALE_TTL
 	) {
+		$this->ttl = $ttl;
+		$this->staleTtl = $staleTtl;
 	}
 
 	/**
@@ -40,13 +65,10 @@ class IPReputationIPoidDataLookup {
 		/** @var array|false|null $data */
 		$data = $this->cache->getWithSetCallback(
 			$this->cache->makeGlobalKey( 'ipreputation-ipoid', $ipForQuerying ),
-			// IPoid data is refreshed every 24 hours and roughly 10% of its IPs drop out
-			// of the database each 24-hour cycle. A one hour TTL seems reasonable to allow
-			// no longer problematic IPs to get evicted from the cache relatively quickly,
-			// and also means that IPs for e.g. residential proxies are updated in our cache
-			// relatively quickly.
-			$this->cache::TTL_HOUR,
-			function () use ( $ipForQuerying, $caller ) {
+			// IPoid data is refreshed every ~12 hours. Set a one hour TTL to allow
+			// IPs to get evicted from the cache relatively quickly, while ensuring reasonable freshness of data
+			$this->ttl,
+			function ( $oldValue, &$ttl ) use ( $ipForQuerying, $caller ) {
 				$start = microtime( true );
 				$ipoidData = $this->ipoidDataFetcher->getDataForIp( $ipForQuerying, $caller );
 				$delay = microtime( true ) - $start;
@@ -60,9 +82,20 @@ class IPReputationIPoidDataLookup {
 						->setLabel( 'backend', $this->ipoidDataFetcher->getBackendName() )
 						->observeSeconds( $delay );
 				}
+				// IPoid service unavailable (false), but we have stale data - return it with a short TTL
+				// so we retry soon rather than serving stale data for the full TTL.
+				// Note: null means "IP not found" (legitimate response), false means "service unavailable"
+				if ( $ipoidData === false && is_array( $oldValue ) ) {
+					$ttl = $this->staleTtl;
+					return $oldValue;
+				}
 				return $ipoidData;
 			},
-			$callbackParams
+			$callbackParams + [
+				// Allow stale values to persist for up to 72 hours total (TTL_HOUR + 71 hours)
+				'staleTTL' => 71 * $this->cache::TTL_HOUR,
+				'lockTSE' => $this->cache::TTL_HOUR,
+			]
 		);
 
 		// If no IPReputation data was found or the request failed, then return null

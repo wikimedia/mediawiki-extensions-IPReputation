@@ -163,9 +163,10 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertNull(
 			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( $ip, __METHOD__ ),
-			'Should return null if the response from IPoid was not an array'
+			'Should return null when IPoid returns malformed data (service error)'
 		);
-		$this->assertTimingObserved( __METHOD__ );
+		// Timing is not observed when fetcher returns false (service unavailable/malformed data)
+		$this->assertTimingNotObserved();
 	}
 
 	public function provideIPoidBackendType(): array {
@@ -205,9 +206,10 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->setLogger( 'IPReputation', $mockLogger );
 		$this->assertNull(
 			$this->getObjectUnderTest()->getIPoidDataForIp( '1.2.3.4', __METHOD__ ),
-			'Should return null if IP was not present in response from IPoid'
+			'Should return null when IPoid returns malformed response (service error)'
 		);
-		$this->assertTimingObserved( __METHOD__ );
+		// Timing is not observed when fetcher returns false (service unavailable/malformed data)
+		$this->assertTimingNotObserved();
 	}
 
 	public function testGetIPoidDataForIpWhenIPoidReturnsWith500Error() {
@@ -231,9 +233,10 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			$this->getObjectUnderTest()->getIPoidDataForIp(
 				'1.2.3.4', __METHOD__
 			),
-			'Should return null if IP was not present in response from IPoid'
+			'Should return null when IPoid returns 500 error (no cached data available)'
 		);
-		$this->assertTimingObserved( __METHOD__ );
+		// Timing is not observed when fetcher returns false (service unavailable)
+		$this->assertTimingNotObserved();
 	}
 
 	public function testGetIPoidDataForIpWhenIPoidHasNoMatch() {
@@ -415,6 +418,104 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 			[ 'FRESH' ],
 			$result->getRisks(),
 			'Should ignore the STALE cached value and call the fetcher'
+		);
+	}
+
+	public function testStaleValueReturnedWhenIPoidUnavailable() {
+		$ip = '1.2.3.4';
+		$localCache = new WANObjectCache( [ 'cache' => new HashBagOStuff() ] );
+
+		$mockFetcher = $this->createMock( IPoidDataFetcher::class );
+		$mockFetcher->method( 'getBackendName' )->willReturn( 'test' );
+		// First call returns valid data, second call simulates IPoid being down, third call simulates fresh data
+		$mockFetcher->expects( $this->exactly( 3 ) )
+			->method( 'getDataForIp' )
+			->willReturnOnConsecutiveCalls(
+				[ 'risks' => [ 'TUNNEL' ] ],
+				false,
+				[ 'risks' => [ 'VPN' ] ]
+			);
+
+		// Use a 1-second TTL so we can test stale value retrieval
+		$lookup = new IPReputationIPoidDataLookup(
+			$this->getServiceContainer()->getStatsFactory(),
+			$localCache,
+			$mockFetcher,
+			1,
+			1
+		);
+
+		// Initial call should populate the cache
+		$result = $lookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$this->assertSame(
+			[ 'TUNNEL' ],
+			$result->getRisks(),
+			'Initial call should return data from IPoid'
+		);
+
+		// Wait for TTL to expire (1 second TTL + small buffer)
+		usleep( 1100000 );
+
+		// Second call should return stale data since IPoid is unavailable
+		$result = $lookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$this->assertSame(
+			[ 'TUNNEL' ],
+			$result->getRisks(),
+			'Should return stale cached data when IPoid is unavailable'
+		);
+
+		// Wait for stale TTL to expire (1 second TTL + small buffer)
+		usleep( 1100000 );
+
+		// Third call should return fresh data since IPoid is available again
+		$result = $lookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$this->assertSame(
+			[ 'VPN' ],
+			$result->getRisks(),
+			'Should return fresh data when IPoid is available again'
+		);
+	}
+
+	public function testStaleValueNotReturnedWhenIPNotFound() {
+		$ip = '1.2.3.4';
+		$localCache = new WANObjectCache( [ 'cache' => new HashBagOStuff() ] );
+
+		$mockFetcher = $this->createMock( IPoidDataFetcher::class );
+		$mockFetcher->method( 'getBackendName' )->willReturn( 'test' );
+		// First call returns valid data, second call returns null (IP not found in IPoid database)
+		$mockFetcher->expects( $this->exactly( 2 ) )
+			->method( 'getDataForIp' )
+			->willReturnOnConsecutiveCalls(
+				[ 'risks' => [ 'TUNNEL' ] ],
+				null
+			);
+
+		// Use a 1-second TTL so we can test cache expiration
+		$lookup = new IPReputationIPoidDataLookup(
+			$this->getServiceContainer()->getStatsFactory(),
+			$localCache,
+			$mockFetcher,
+			1,
+			1
+		);
+
+		// Initial call should populate the cache
+		$result = $lookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$this->assertSame(
+			[ 'TUNNEL' ],
+			$result->getRisks(),
+			'Initial call should return data from IPoid'
+		);
+
+		// Wait for TTL to expire (1 second TTL + small buffer)
+		usleep( 1100000 );
+
+		// Second call returns null (IP not found), should NOT return stale data
+		// because null means "IP legitimately not found", not "service unavailable"
+		$result = $lookup->getIPoidDataForIp( $ip, __METHOD__ );
+		$this->assertNull(
+			$result,
+			'Should return null when IP is not found (not stale data)'
 		);
 	}
 
