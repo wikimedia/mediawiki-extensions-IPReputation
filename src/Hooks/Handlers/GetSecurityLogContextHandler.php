@@ -49,6 +49,10 @@ class GetSecurityLogContextHandler implements GetSecurityLogContextHook {
 		if ( $behaviors ) {
 			$context['ip_reputation_behaviors'] = $behaviors;
 		}
+		$tagMetadataCategories = $ipoidResponse->getTagMetadataCategories();
+		if ( $tagMetadataCategories ) {
+			$context['ip_reputation_tag_metadata_categories'] = $tagMetadataCategories;
+		}
 		$organization = $ipoidResponse->getOrganization();
 		if ( $organization ) {
 			$context['ip_reputation_organization'] = $organization;

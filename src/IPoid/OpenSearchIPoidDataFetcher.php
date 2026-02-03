@@ -88,6 +88,7 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 			'risks' => $raw['risks'] ?? [ 'UNKNOWN' ],
 			'tunnels' => $tunnelOperators,
 			'proxies' => $raw['client']['proxies'] ?? null,
+			'tag_metadata_categories' => $raw['client']['tag_metadata_categories'] ?? null,
 			'client_count' => $raw['client']['count'] ?? null,
 			'countries' => $raw['client']['countries'] ?? null,
 			'connectionTypes' => $raw['client']['types'] ?? null,
