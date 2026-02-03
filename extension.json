@@ -67,7 +67,7 @@
 		},
 		"IPReputationIPoidRequestTimeoutSeconds": {
 			"description": "Number of seconds to use for timeout and connectTimeout options to HTTP request factory when calling IPoid",
-			"value": 2
+			"value": 1
 		},
 		"IPReputationEnableLoginCaptchaIfIPKnown": {
 			"description": "If the IP is known to IPoid, require a CAPTCHA on Special:UserLogin.",
