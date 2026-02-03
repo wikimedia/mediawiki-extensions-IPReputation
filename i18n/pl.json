@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Woytecr"
+		]
+	},
+	"ipreputation-desc": "Umożliwia dostęp do danych dotyczących reputacji adresów IP, ich rejestrowanie i podejmowanie działań na ich podstawie.",
+	"ipreputation-blocked-ip-reputation": "Obecnie wykorzystywany przez Ciebie adres IP został zablokowany, gdyż prawdopodobnie został niedawno wykorzystywany do nadużyć."
+}
