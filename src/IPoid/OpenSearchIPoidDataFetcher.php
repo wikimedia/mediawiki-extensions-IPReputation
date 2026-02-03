@@ -43,11 +43,13 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 		$response = $request->execute();
 
 		if ( !$response->isOK() ) {
+			// Connection error or server error - return false to indicate service unavailability
+			// (distinct from "IP not found" which returns null)
 			$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
 			$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
 				'exception' => new RuntimeException(),
 			] ) );
-			return null;
+			return false;
 		}
 
 		$data = json_decode( $request->getContent(), true );
@@ -62,7 +64,7 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 					'caller' => $caller,
 				]
 			);
-			return null;
+			return false;
 		}
 
 		if ( $data['hits']['total']['value'] === 0 ) {
