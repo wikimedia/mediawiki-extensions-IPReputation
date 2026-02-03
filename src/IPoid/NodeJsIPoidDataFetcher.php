@@ -37,21 +37,23 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 		$response = $request->execute();
 
 		if ( !$response->isOK() ) {
-			// Probably a 404, which means IPoid doesn't know about the IP.
-			// If not a 404, log it, so we can figure out what happened.
-			if ( $request->getStatus() !== 404 ) {
-				$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
-				$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
-					'exception' => new RuntimeException(),
-				] ) );
+			// 404 means IPoid doesn't know about the IP - return null (IP not found)
+			if ( $request->getStatus() === 404 ) {
+				return null;
 			}
-			return null;
+			// For other errors (500, connection issues, etc.), log and return false
+			// to indicate service unavailability (distinct from "IP not found")
+			$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
+			$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
+				'exception' => new RuntimeException(),
+			] ) );
+			return false;
 		}
 
 		$data = json_decode( $request->getContent(), true );
 
 		if ( !$data ) {
-			// Malformed data.
+			// Malformed data - return false to indicate service error
 			$this->logger->error(
 				'Got unexpected data from IPoid while checking IP {ip} for {caller}',
 				[
@@ -60,13 +62,14 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 					'caller' => $caller,
 				]
 			);
-			return null;
+			return false;
 		}
 
 		// IPoid will return the IP in lower case format, and we are searching for the
 		// indexed value in the returned array.
 		if ( !isset( $data[$ip] ) ) {
 			// IP should always be set in the data array, but just to be safe.
+			// Return false to indicate service error (malformed response)
 			$this->logger->error(
 				'Got JSON data from IPoid missing the requested IP while checking {ip} for {caller}',
 				[
@@ -75,7 +78,7 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 					'caller' => $caller,
 				]
 			);
-			return null;
+			return false;
 		}
 
 		// We have a match and valid data structure;
