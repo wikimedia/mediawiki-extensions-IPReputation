@@ -45,10 +45,20 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 			}
 			// For other errors (500, connection issues, etc.), log and return false
 			// to indicate service unavailability (distinct from "IP not found")
-			$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
-			$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
-				'exception' => new RuntimeException(),
-			] ) );
+			if ( $response->hasMessage( 'http-timed-out' ) ) {
+				$this->logger->warning(
+					'Timeout connecting to IPoid for IP {ip} ({caller})',
+					[
+						'ip' => $ip,
+						'caller' => $caller,
+					]
+				);
+			} else {
+				$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
+				$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
+					'exception' => new RuntimeException(),
+				] ) );
+			}
 			return false;
 		}
 

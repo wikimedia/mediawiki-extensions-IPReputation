@@ -47,10 +47,20 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 		if ( !$response->isOK() ) {
 			// Connection error or server error - return false to indicate service unavailability
 			// (distinct from "IP not found" which returns null)
-			$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
-			$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
-				'exception' => new RuntimeException(),
-			] ) );
+			if ( $response->hasMessage( 'http-timed-out' ) ) {
+				$this->logger->warning(
+					'Timeout connecting to IPoid for IP {ip} ({caller})',
+					[
+						'ip' => $ip,
+						'caller' => $caller,
+					]
+				);
+			} else {
+				$statusFormatter = $this->formatterFactory->getStatusFormatter( RequestContext::getMain() );
+				$this->logger->error( ...$statusFormatter->getPsr3MessageAndContext( $response, [
+					'exception' => new RuntimeException(),
+				] ) );
+			}
 			return false;
 		}
 
