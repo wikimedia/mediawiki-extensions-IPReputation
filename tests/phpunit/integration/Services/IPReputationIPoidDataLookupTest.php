@@ -101,6 +101,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 	/** @dataProvider provideIPoidBackendType */
 	public function testGetIPoidDataForIpOnNonArrayResponse( string $ipoidBackend ) {
 		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationIPoidConnectTimeoutSeconds', 10 );
 		$this->overrideConfigValue( 'IPReputationDataProvider', $ipoidBackend );
 		$this->overrideConfigValue( 'IPReputationDeveloperMode', false );
 		$this->overrideConfigValue( 'IPReputationIPoidUrl', 'http://localhost:6035' );
@@ -125,7 +126,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 					case 'nodejs_ipoid':
 						$this->assertSame( "http://localhost:6035/feed/v1/ip/$ip", $url );
 						$this->assertArrayEquals(
-							[ 'method' => 'GET', 'timeout' => 10, 'connectTimeout' => 1 ],
+							[ 'method' => 'GET', 'timeout' => 10, 'connectTimeout' => 10 ],
 							$options
 						);
 						break;
@@ -138,7 +139,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 							'timeout' => 10,
 							'sslVerifyCert' => true,
 							'sslVerifyHost' => true,
-							'connectTimeout' => 1,
+							'connectTimeout' => 10,
 						], $options );
 						break;
 				}

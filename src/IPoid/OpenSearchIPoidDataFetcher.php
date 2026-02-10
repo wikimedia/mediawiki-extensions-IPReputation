@@ -13,6 +13,7 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 	public const CONSTRUCTOR_OPTIONS = [
 		'IPReputationIPoidUrl',
 		'IPReputationIPoidRequestTimeoutSeconds',
+		'IPReputationIPoidConnectTimeoutSeconds',
 		'IPReputationDeveloperMode',
 	];
 
@@ -29,12 +30,13 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 	public function getDataForIp( string $ip, string $caller ): array|false|null {
 		$url = $this->options->get( 'IPReputationIPoidUrl' ) . '/ipoid/_search';
 		$timeout = $this->options->get( 'IPReputationIPoidRequestTimeoutSeconds' );
+		$connectTimeout = $this->options->get( 'IPReputationIPoidConnectTimeoutSeconds' );
 		$body = [ 'query' => [ 'bool' => [ 'filter' => [ [ 'term' => [ 'ip' => $ip ] ] ] ] ] ];
 		$request = $this->httpRequestFactory->create( $url, [
 			'method' => 'POST',
 			'postData' => json_encode( $body ),
 			'timeout' => $timeout,
-			'connectTimeout' => 1,
+			'connectTimeout' => $connectTimeout,
 			'sslVerifyCert' => !$this->options->get( 'IPReputationDeveloperMode' ),
 			'sslVerifyHost' => !$this->options->get( 'IPReputationDeveloperMode' ),
 		], $caller );
