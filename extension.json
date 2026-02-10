@@ -58,8 +58,12 @@
 			"value": true
 		},
 		"IPReputationIPoidRequestTimeoutSeconds": {
-			"description": "Number of seconds to use for timeout and connectTimeout options to HTTP request factory when calling IPoid",
+			"description": "Number of seconds to use for timeout option to HTTP request factory when calling IPoid",
 			"value": 1
+		},
+		"IPReputationIPoidConnectTimeoutSeconds": {
+			"description": "Number of seconds to use for connectTimeout option to HTTP request factory when calling IPoid",
+			"value": 2
 		},
 		"IPReputationDeveloperMode": {
 			"description": "If developer mode is enabled. This should be set to false in production. Developer mode can affect whether e.g. SSL certification validation is enabled in HTTP requests",

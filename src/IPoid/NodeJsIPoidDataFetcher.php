@@ -13,6 +13,7 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 	public const CONSTRUCTOR_OPTIONS = [
 		'IPReputationIPoidUrl',
 		'IPReputationIPoidRequestTimeoutSeconds',
+		'IPReputationIPoidConnectTimeoutSeconds',
 	];
 
 	public function __construct(
@@ -28,11 +29,12 @@ class NodeJsIPoidDataFetcher implements IPoidDataFetcher {
 	public function getDataForIp( string $ip, string $caller ): array|false|null {
 		$baseUrl = $this->options->get( 'IPReputationIPoidUrl' );
 		$timeout = $this->options->get( 'IPReputationIPoidRequestTimeoutSeconds' );
+		$connectTimeout = $this->options->get( 'IPReputationIPoidConnectTimeoutSeconds' );
 		$url = $baseUrl . '/feed/v1/ip/' . $ip;
 		$request = $this->httpRequestFactory->create( $url, [
 			'method' => 'GET',
 			'timeout' => $timeout,
-			'connectTimeout' => 1,
+			'connectTimeout' => $connectTimeout,
 		], $caller );
 		$response = $request->execute();
 
