@@ -477,6 +477,78 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
+	public function testOpenSearchIPoidRetryEventuallySucceeds() {
+		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
+		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationIPoidConnectTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationDeveloperMode', false );
+
+		$failStatus = StatusValue::newFatal( new RawMessage( 'Connection error' ) );
+		$successStatus = new StatusValue();
+		$successStatus->setOK( true );
+
+		$failRequest = $this->createMock( MWHttpRequest::class );
+		$failRequest->method( 'execute' )->willReturn( $failStatus );
+
+		$successRequest = $this->createMock( MWHttpRequest::class );
+		$successRequest->method( 'execute' )->willReturn( $successStatus );
+		$successRequest->method( 'getContent' )->willReturn( json_encode( [
+			'hits' => [
+				'total' => [ 'value' => 1 ],
+				'hits' => [ [ '_source' => [
+					'risks' => [ 'TUNNEL' ],
+					'client' => [],
+					'location' => [],
+				] ] ],
+			],
+		] ) );
+
+		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
+		$mockHttpRequestFactory->expects( $this->exactly( 2 ) )
+			->method( 'create' )
+			->willReturnOnConsecutiveCalls( $failRequest, $successRequest );
+		$this->setService( 'HttpRequestFactory', $mockHttpRequestFactory );
+
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		$mockLogger->expects( $this->once() )
+			->method( 'warning' )
+			->with( $this->stringContains( 'retrying' ) );
+		$mockLogger->expects( $this->never() )->method( 'error' );
+		$this->setLogger( 'IPReputation', $mockLogger );
+
+		$result = $this->getObjectUnderTest()->getIPoidDataForIp( '1.2.3.4', __METHOD__ );
+		$this->assertNotNull( $result, 'Should return data after successful retry' );
+		$this->assertSame( [ 'TUNNEL' ], $result->getRisks() );
+	}
+
+	public function testOpenSearchIPoidRetryExhausted() {
+		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
+		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationIPoidConnectTimeoutSeconds', 10 );
+		$this->overrideConfigValue( 'IPReputationDeveloperMode', false );
+
+		$failStatus = StatusValue::newFatal( new RawMessage( 'Connection error' ) );
+		$failRequest = $this->createMock( MWHttpRequest::class );
+		$failRequest->method( 'execute' )->willReturn( $failStatus );
+
+		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
+		$mockHttpRequestFactory->expects( $this->exactly( 2 ) )
+			->method( 'create' )
+			->willReturn( $failRequest );
+		$this->setService( 'HttpRequestFactory', $mockHttpRequestFactory );
+
+		$mockLogger = $this->createMock( LoggerInterface::class );
+		$mockLogger->expects( $this->once() )
+			->method( 'warning' )
+			->with( $this->stringContains( 'retrying' ) );
+		$mockLogger->expects( $this->once() )->method( 'error' );
+		$this->setLogger( 'IPReputation', $mockLogger );
+
+		$result = $this->getObjectUnderTest()->getIPoidDataForIp( '1.2.3.4', __METHOD__ );
+		$this->assertNull( $result, 'Should return null when all retries are exhausted' );
+		$this->assertTimingNotObserved();
+	}
+
 	public function testStaleValueNotReturnedWhenIPNotFound() {
 		$ip = '1.2.3.4';
 		$localCache = new WANObjectCache( [ 'cache' => new HashBagOStuff() ] );
