@@ -10,6 +10,8 @@ use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
+	private const MAX_RETRIES = 2;
+
 	public const CONSTRUCTOR_OPTIONS = [
 		'IPReputationIPoidUrl',
 		'IPReputationIPoidRequestTimeoutSeconds',
@@ -32,19 +34,39 @@ class OpenSearchIPoidDataFetcher implements IPoidDataFetcher {
 		$timeout = $this->options->get( 'IPReputationIPoidRequestTimeoutSeconds' );
 		$connectTimeout = $this->options->get( 'IPReputationIPoidConnectTimeoutSeconds' );
 		$body = [ 'query' => [ 'bool' => [ 'filter' => [ [ 'term' => [ 'ip' => $ip ] ] ] ] ] ];
-		$request = $this->httpRequestFactory->create( $url, [
-			'method' => 'POST',
-			'postData' => json_encode( $body ),
-			'timeout' => $timeout,
-			'connectTimeout' => $connectTimeout,
-			'sslVerifyCert' => !$this->options->get( 'IPReputationDeveloperMode' ),
-			'sslVerifyHost' => !$this->options->get( 'IPReputationDeveloperMode' ),
-		], $caller );
-		$request->setHeader( 'Accept', 'application/json' );
-		$request->setHeader( 'Content-Type', 'application/json' );
-		$response = $request->execute();
+		$request = null;
+		$response = null;
+		for ( $attempt = 1; $attempt <= self::MAX_RETRIES; $attempt++ ) {
+			$request = $this->httpRequestFactory->create( $url, [
+				'method' => 'POST',
+				'postData' => json_encode( $body ),
+				'timeout' => $timeout,
+				'connectTimeout' => $connectTimeout,
+				'sslVerifyCert' => !$this->options->get( 'IPReputationDeveloperMode' ),
+				'sslVerifyHost' => !$this->options->get( 'IPReputationDeveloperMode' ),
+			], $caller );
+			$request->setHeader( 'Accept', 'application/json' );
+			$request->setHeader( 'Content-Type', 'application/json' );
+			$response = $request->execute();
 
-		if ( !$response->isOK() ) {
+			if ( $response->isOK() ) {
+				break;
+			}
+
+			if ( $attempt < self::MAX_RETRIES ) {
+				$this->logger->warning(
+					'IPoid request failed for IP {ip} ({caller}), retrying (attempt {attempt}/{maxRetries})',
+					[
+						'ip' => $ip,
+						'caller' => $caller,
+						'attempt' => $attempt,
+						'maxRetries' => self::MAX_RETRIES,
+					]
+				);
+			}
+		}
+
+		if ( $response && !$response->isOK() ) {
 			// Connection error or server error - return false to indicate service unavailability
 			// (distinct from "IP not found" which returns null)
 			if ( $response->hasMessage( 'http-timed-out' ) ) {
