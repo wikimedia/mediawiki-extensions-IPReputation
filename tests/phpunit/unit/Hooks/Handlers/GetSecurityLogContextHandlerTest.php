@@ -19,6 +19,7 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$mockResponse->method( 'getRisks' )->willReturn( [ 'VPN_TUNNEL', 'GEO_MISMATCH' ] );
 		$mockResponse->method( 'getProxies' )->willReturn( [ 'Cloudflare' ] );
 		$mockResponse->method( 'getBehaviors' )->willReturn( [ 'CRAWLER' ] );
+		$mockResponse->method( 'getCountry' )->willReturn( 'US' );
 
 		$mockLookup = $this->createMock( IPReputationIPoidDataLookup::class );
 		$mockLookup->method( 'getIPoidDataForIp' )
@@ -39,6 +40,7 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$this->assertEquals( [ 'VPN_TUNNEL', 'GEO_MISMATCH' ], $context['ip_reputation_risks'] );
 		$this->assertEquals( [ 'Cloudflare' ], $context['ip_reputation_proxies'] );
 		$this->assertEquals( [ 'CRAWLER' ], $context['ip_reputation_behaviors'] );
+		$this->assertEquals( 'US', $context['ip_reputation_country'] );
 	}
 
 	public function testOnGetSecurityLogContext_SkipsEmptyData() {
@@ -47,6 +49,7 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$mockResponse->method( 'getRisks' )->willReturn( [ 'CALLBACK_PROXY' ] );
 		$mockResponse->method( 'getProxies' )->willReturn( [] );
 		$mockResponse->method( 'getBehaviors' )->willReturn( null );
+		$mockResponse->method( 'getCountry' )->willReturn( null );
 
 		$mockLookup = $this->createMock( IPReputationIPoidDataLookup::class );
 		$mockLookup->method( 'getIPoidDataForIp' )->willReturn( $mockResponse );
@@ -65,6 +68,7 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$this->assertArrayNotHasKey( 'ip_reputation_tunnels', $context );
 		$this->assertArrayNotHasKey( 'ip_reputation_proxies', $context );
 		$this->assertArrayNotHasKey( 'ip_reputation_behaviors', $context );
+		$this->assertArrayNotHasKey( 'ip_reputation_country', $context );
 	}
 
 	public function testOnGetSecurityLogContext_HandlesNullResponse() {
