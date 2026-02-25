@@ -57,5 +57,9 @@ class GetSecurityLogContextHandler implements GetSecurityLogContextHook {
 		if ( $organization ) {
 			$context['ip_reputation_organization'] = $organization;
 		}
+		$country = $ipoidResponse->getCountry();
+		if ( $country ) {
+			$context['ip_reputation_country'] = $country;
+		}
 	}
 }
