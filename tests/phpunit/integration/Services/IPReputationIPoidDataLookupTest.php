@@ -170,7 +170,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->assertTimingNotObserved();
 	}
 
-	public function provideIPoidBackendType(): array {
+	public static function provideIPoidBackendType(): array {
 		return [
 			'OpenSearch IPoid' => [ 'opensearch_ipoid' ],
 			'NodeJS IPoid' => [ 'nodejs_ipoid' ],
