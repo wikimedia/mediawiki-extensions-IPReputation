@@ -5,8 +5,8 @@ namespace MediaWiki\Extension\IPReputation\Tests\Hooks\Handlers;
 use MediaWiki\Extension\IPReputation\Hooks\Handlers\GetSecurityLogContextHandler;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup;
+use MediaWiki\Request\WebRequest;
 use MediaWikiUnitTestCase;
-use WebRequest;
 
 /**
  * @covers \MediaWiki\Extension\IPReputation\Hooks\Handlers\GetSecurityLogContextHandler
