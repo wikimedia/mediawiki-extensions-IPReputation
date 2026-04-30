@@ -1,9 +1,12 @@
 {
 	"@metadata": {
 		"authors": [
-			"Ykhwong"
+			"Ykhwong",
+			"Tensama0415"
 		]
 	},
+	"ipreputation-desc": "IP 평판 데이터의 가져오기, 로깅 및 조치를 위한 접근 권한을 제공합니다.",
+	"ipreputation-blocked-ip-reputation": "현재 사용 중인 IP 주소는 최근 악의적인 목적으로 사용된 것으로 판단되어 차단되었습니다.",
 	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "사용자가 사용 중인 IP와 연결된 터널 운영자 목록 ($1)",
 	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "사용자가 사용하는 IP와 관련된 위험 목록 ($1)",
 	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "사용자가 사용 중인 IP와 연결된 프록시 서비스 목록 ($1)",
