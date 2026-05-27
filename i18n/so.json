@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"AhmedG612"
+		]
+	},
+	"ipreputation-desc": "Bixi marin loogu heli karo soo saarista, diiwaangelinta, iyo falgelinta xogta sumcadda IP-ga.",
+	"ipreputation-blocked-ip-reputation": "Cinwaanka IP-ga aad hadda isticmaalayso waa la xannibay sababtoo ah waxaa la rumeysan yahay inuu dhawaan loo adeegsaday falal xadgudub ah.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Liiska maamulayaasha tunnel-ka ee la xiriira IP-ga uu isticmaalayo isticmaaluhu ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Liiska khataraha la xiriira IP-ga uu isticmaalayo isticmaaluhu ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Liiska adeegyada proxy-ga ee la xiriira IP-ga uu isticmaalayo isticmaaluhu ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Liiska dabeecadaha la xiriira IP-ga uu isticmaalayo isticmaaluhu ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Tirada macaamiisha la xiriira IP-ga uu isticmaalayo isticmaaluhu ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Ma IP-ga uu isticmaalayo isticmaaluhu waxaa yaqaan adeegga IPoid ($1)"
+}
