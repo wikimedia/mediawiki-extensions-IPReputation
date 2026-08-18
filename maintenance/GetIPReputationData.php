@@ -19,7 +19,7 @@ class GetIPReputationData extends Maintenance {
 
 	public function __construct() {
 		parent::__construct();
-		$this->addDescription( 'Retrieve data for an IP address.' );
+		$this->addDescription( 'Retrieve data for an IP address (bypasses cache).' );
 		$this->addArg( 'ip', 'The IP address to use in the lookup.' );
 		$this->requireExtension( 'IPReputation' );
 	}
@@ -29,9 +29,9 @@ class GetIPReputationData extends Maintenance {
 		if ( !IPUtils::isValid( $ip ) ) {
 			$this->fatalError( "\"$ip\" is not a valid IP address." );
 		}
-		/** @var IPReputationIPoidDataLookup $IPReputationIPoidDataLookup */
-		$IPReputationIPoidDataLookup = $this->getServiceContainer()->getService( 'IPReputationIPoidDataLookup' );
-		$result = $IPReputationIPoidDataLookup->getIPoidDataForIp( $ip, __METHOD__, false );
+		/** @var IPReputationIPoidDataLookup $lookup */
+		$lookup = $this->getServiceContainer()->getService( 'IPReputationIPoidDataLookup' );
+		$result = $lookup->fetchUncachedDataForIp( $ip, __METHOD__ );
 		if ( !$result ) {
 			$this->output( "No result found" . PHP_EOL );
 			return;

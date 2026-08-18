@@ -6,7 +6,6 @@ namespace MediaWiki\Extension\IPReputation\Services;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidDataFetcher;
 use MediaWiki\Extension\IPReputation\IPoid\IPoidResponse;
 use Wikimedia\IPUtils;
-use Wikimedia\LightweightObjectStore\ExpirationAwareness;
 use Wikimedia\ObjectCache\WANObjectCache;
 use Wikimedia\Stats\StatsFactory;
 
@@ -19,34 +18,30 @@ use Wikimedia\Stats\StatsFactory;
 class IPReputationIPoidDataLookup {
 
 	/**
-	 * Default cache TTL in seconds (1 hour)
+	 * Cache TTL in seconds (1 hour).
+	 *
+	 * IPoid data is refreshed every ~12 hours. One hour allows IPs to get evicted
+	 * from the cache relatively quickly, while ensuring reasonable freshness of data.
 	 */
-	private const DEFAULT_TTL = ExpirationAwareness::TTL_HOUR;
-	/**
-	 * Default cache TTL in seconds (5 minutes) to use for stale cache values
-	 * when the backend is unavailable
-	 */
-	private const DEFAULT_STALE_TTL = ExpirationAwareness::TTL_MINUTE * 5;
-
-	private int $ttl;
-	private int $staleTtl;
+	private const CACHE_TTL = WANObjectCache::TTL_HOUR;
 
 	/**
-	 * @param StatsFactory $statsFactory
-	 * @param WANObjectCache $cache
-	 * @param IPoidDataFetcher $ipoidDataFetcher
-	 * @param int $ttl Cache TTL in seconds.
-	 * @param int $staleTtl TTL for stale data retrieved from cache
+	 * Persist stale values for up to 72 hours total (CACHE_TTL + STALE_TTL).
 	 */
+	private const STALE_STORE_TTL = 71 * WANObjectCache::TTL_HOUR;
+
+	/**
+	 * Cache TTL in seconds (5 minutes).
+	 *
+	 * Used when renewing stale data if the backend is unavailable.
+	 */
+	private const STALE_SERVE_TTL = 5 * WANObjectCache::TTL_MINUTE;
+
 	public function __construct(
 		private readonly StatsFactory $statsFactory,
 		private readonly WANObjectCache $cache,
-		private readonly IPoidDataFetcher $ipoidDataFetcher,
-		int $ttl = self::DEFAULT_TTL,
-		int $staleTtl = self::DEFAULT_STALE_TTL
+		private readonly IPoidDataFetcher $ipoidDataFetcher
 	) {
-		$this->ttl = $ttl;
-		$this->staleTtl = $staleTtl;
 	}
 
 	/**
@@ -54,28 +49,22 @@ class IPReputationIPoidDataLookup {
 	 *
 	 * @param string $ip The IP address to lookup IPReputation data on
 	 * @param string $caller The method performing this lookup, for profiling and errors
-	 * @param bool $useCache If the request should use the cache
 	 * @return IPoidResponse|null IPoid data for the specific address, or null if there is no data
 	 */
-	public function getIPoidDataForIp( string $ip, string $caller, bool $useCache = true ): ?IPoidResponse {
+	public function getIPoidDataForIp( string $ip, string $caller ): ?IPoidResponse {
 		$ipForQuerying = IPUtils::prettifyIP( $ip );
-		$callbackParams = [];
-		if ( !$useCache ) {
-			$callbackParams['minAsOf'] = INF;
-		}
+
 		/** @var array|false|null $data */
 		$data = $this->cache->getWithSetCallback(
 			$this->cache->makeGlobalKey( 'ipreputation-ipoid', $ipForQuerying ),
-			// IPoid data is refreshed every ~12 hours. Set a one hour TTL to allow
-			// IPs to get evicted from the cache relatively quickly, while ensuring reasonable freshness of data
-			$this->ttl,
+			self::CACHE_TTL,
 			function ( $oldValue, &$ttl ) use ( $ipForQuerying, $caller ) {
 				$start = microtime( true );
 				$ipoidData = $this->ipoidDataFetcher->getDataForIp( $ipForQuerying, $caller );
 				$delay = microtime( true ) - $start;
-				// Track the time it took to make a request to IPoid. We do not do this if we could not cache the
-				// response to avoid overloading the StatsFactory backend as this method gets called frequently.
-				// At the moment the cache is only missed if the IPoid URL is not set.
+				// Measure IPoid request latency.
+				// If the IPoid URL is not set, this returns false and gets called frequently.
+				// Avoid overloading StatsFactory with noise in that case.
 				if ( $ipoidData !== false ) {
 					$this->statsFactory->withComponent( 'IPReputation' )
 						->getTiming( 'ipoid_data_lookup_time' )
@@ -87,24 +76,35 @@ class IPReputationIPoidDataLookup {
 				// so we retry soon rather than serving stale data for the full TTL.
 				// Note: null means "IP not found" (legitimate response), false means "service unavailable"
 				if ( $ipoidData === false && is_array( $oldValue ) ) {
-					$ttl = $this->staleTtl;
+					$ttl = self::STALE_SERVE_TTL;
 					return $oldValue;
 				}
 				return $ipoidData;
 			},
-			$callbackParams + [
-				// Allow stale values to persist for up to 72 hours total (TTL_HOUR + 71 hours)
-				'staleTTL' => 71 * $this->cache::TTL_HOUR,
+			[
+				'staleTTL' => self::STALE_STORE_TTL,
 				'lockTSE' => $this->cache::TTL_HOUR,
 			]
 		);
 
-		// If no IPReputation data was found or the request failed, then return null
 		if ( $data === false || $data === null ) {
+			// No IPReputation data was found, or the request failed.
 			return null;
 		}
 
-		// Return the IPoid data wrapped in the value object for ease of access for the caller.
+		return IPoidResponse::newFromArray( $data );
+	}
+
+	/**
+	 * @internal For maintenance/getIPReputationData.php
+	 * @codeCoverageIgnore
+	 */
+	public function fetchUncachedDataForIp( string $ip, string $caller ): ?IPoidResponse {
+		$ipForQuerying = IPUtils::prettifyIP( $ip );
+		$data = $this->ipoidDataFetcher->getDataForIp( $ipForQuerying, $caller );
+		if ( $data === false || $data === null ) {
+			return null;
+		}
 		return IPoidResponse::newFromArray( $data );
 	}
 
