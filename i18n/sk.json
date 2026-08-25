@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Wizzard"
+		]
+	},
+	"ipreputation-desc": "Poskytuje prístup k získavaniu, zaznamenávaniu a využívaniu údajov o reputácii IP adries.",
+	"ipreputation-blocked-ip-reputation": "IP adresa, ktorú práve používate, bola zablokovaná, pretože sa predpokladá, že bola nedávno použitá na zneužívanie."
+}
