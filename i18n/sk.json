@@ -1,0 +1,15 @@
+{
+	"@metadata": {
+		"authors": [
+			"Wizzard"
+		]
+	},
+	"ipreputation-desc": "Poskytuje prístup k získavaniu, zaznamenávaniu a využívaniu údajov o reputácii IP adries.",
+	"ipreputation-blocked-ip-reputation": "IP adresa, ktorú práve používate, bola zablokovaná, pretože sa predpokladá, že bola nedávno použitá na zneužívanie.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "Zoznam prevádzkovateľov tunelov spojených s IP adresou, ktorú používateľ používa ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "Zoznam rizík spojených s IP adresou, ktorú používateľ používa ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "Zoznam proxy služieb spojených s IP adresou, ktorú používateľ používa ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "Zoznam správaní spojených s IP adresou, ktorú používateľ používa ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "Počet klientov spojených s IP adresou, ktorú používateľ používa ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "Či je IP adresa, ktorú používateľ používa, známa službe IPoid ($1)"
+}
