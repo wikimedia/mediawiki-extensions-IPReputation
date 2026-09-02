@@ -46,7 +46,7 @@
 	},
 	"config": {
 		"IPReputationDataProvider": {
-			"description": "Name of the provider to use for retrieving IP reputation data. Valid values: \"nodejs_ipoid\". If not set, the provider will always return null for IP reputation lookups.",
+			"description": "Name of the provider to use for retrieving IP reputation data. Valid values: \"opensearch_ipoid\". If not set, the provider will always return null for IP reputation lookups.",
 			"value": null
 		},
 		"IPReputationIPoidUrl": {

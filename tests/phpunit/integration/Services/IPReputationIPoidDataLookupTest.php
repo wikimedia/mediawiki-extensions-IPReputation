@@ -19,7 +19,6 @@ use Wikimedia\Stats\StatsUtils;
 /**
  * @covers \MediaWiki\Extension\IPReputation\Services\IPReputationIPoidDataLookup
  * @covers \MediaWiki\Extension\IPReputation\IPoid\OpenSearchIPoidDataFetcher
- * @covers \MediaWiki\Extension\IPReputation\IPoid\NodeJsIPoidDataFetcher
  */
 class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 	use MockHttpTrait;
@@ -29,7 +28,7 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		// Reset the $wgIPReputationIPoidUrl back to the default value, in case a local development environment
 		// has a different URL.
 		$this->overrideConfigValue( 'IPReputationIPoidUrl', 'http://localhost:6035' );
-		$this->overrideConfigValue( 'IPReputationDataProvider', 'nodejs_ipoid' );
+		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
 	}
 
 	/**
@@ -97,13 +96,10 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->assertTimingNotObserved();
 	}
 
-	/** @dataProvider provideIPoidBackendType */
-	public function testGetIPoidDataForIpOnNonArrayResponse( string $ipoidBackend ) {
+	public function testGetIPoidDataForIpOnNonArrayResponse(): void {
 		$this->overrideConfigValue( 'IPReputationIPoidRequestTimeoutSeconds', 10 );
 		$this->overrideConfigValue( 'IPReputationIPoidConnectTimeoutSeconds', 10 );
-		$this->overrideConfigValue( 'IPReputationDataProvider', $ipoidBackend );
 		$this->overrideConfigValue( 'IPReputationDeveloperMode', false );
-		$this->overrideConfigValue( 'IPReputationIPoidUrl', 'http://localhost:6035' );
 		$ip = '1.2.3.4';
 
 		// Define a mock MWHttpRequest that will be returned by a mock HttpRequestFactory,
@@ -120,28 +116,17 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		// Other tests do not check this as it should be fine to check this once.
 		$mockHttpRequestFactory = $this->createMock( HttpRequestFactory::class );
 		$mockHttpRequestFactory->method( 'create' )
-			->willReturnCallback( function ( $url, $options ) use ( $mwHttpRequest, $ip, $ipoidBackend ) {
-				switch ( $ipoidBackend ) {
-					case 'nodejs_ipoid':
-						$this->assertSame( "http://localhost:6035/feed/v1/ip/$ip", $url );
-						$this->assertArrayEquals(
-							[ 'method' => 'GET', 'timeout' => 10, 'connectTimeout' => 10 ],
-							$options
-						);
-						break;
-					case 'opensearch_ipoid':
-						$this->assertSame( "http://localhost:6035/ipoid/_search", $url );
-						$postArgs = '{"query":{"bool":{"filter":[{"term":{"ip":"1.2.3.4"}}]}}}';
-						$this->assertArrayEquals( [
-							$postArgs,
-							'method' => 'POST',
-							'timeout' => 10,
-							'sslVerifyCert' => true,
-							'sslVerifyHost' => true,
-							'connectTimeout' => 10,
-						], $options );
-						break;
-				}
+			->willReturnCallback( function ( $url, $options ) use ( $mwHttpRequest, $ip ) {
+				$this->assertSame( "http://localhost:6035/ipoid/_search", $url );
+				$postArgs = '{"query":{"bool":{"filter":[{"term":{"ip":"' . $ip . '"}}]}}}';
+				$this->assertArrayEquals( [
+					$postArgs,
+					'method' => 'POST',
+					'timeout' => 10,
+					'sslVerifyCert' => true,
+					'sslVerifyHost' => true,
+					'connectTimeout' => 10,
+				], $options );
 				return $mwHttpRequest;
 			} );
 		$this->setService( 'HttpRequestFactory', $mockHttpRequestFactory );
@@ -162,53 +147,48 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->setLogger( 'IPReputation', $mockLogger );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp( $ip, __METHOD__ ),
+			$this->getObjectUnderTest()->getIPoidDataForIp( $ip, __METHOD__ ),
 			'Should return null when IPoid returns malformed data (service error)'
 		);
 		// Timing is not observed when fetcher returns false (service unavailable/malformed data)
 		$this->assertTimingNotObserved();
 	}
 
-	public static function provideIPoidBackendType(): array {
-		return [
-			'OpenSearch IPoid' => [ 'opensearch_ipoid' ],
-			'NodeJS IPoid' => [ 'nodejs_ipoid' ],
-		];
-	}
-
-	public function testGetIPoidDataForIpOnArrayResponseNotContainingIP() {
-		// Make a mock MWHttpRequest that will simulate a response which is invalid from IPoid
+	public function testGetIPoidDataForIpWhenIPoidRequestTimesOut(): void {
+		// Mock that the request always times out
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
-		$status = new StatusValue();
-		$status->setOK( true );
 		$mwHttpRequest->method( 'execute' )
-			->willReturn( $status );
-		$mwHttpRequest->method( 'getContent' )
-			->willReturn( json_encode( [ 'foo' => 'bar' ] ) );
+			->willReturn( StatusValue::newFatal( 'http-timed-out' ) );
 		$this->installMockHttp( $mwHttpRequest );
 
-		// Create a mock LoggerInterface that expects a error to be logged about the invalid response from IPoid
+		// Create a mock LoggerInterface that expects a error to be logged about the request timeout
+		$expectedWarnings = [
+			'IPoid request failed for IP {ip} ({caller}), retrying (attempt {attempt}/{maxRetries})',
+			'Timeout connecting to IPoid for IP {ip} ({caller})',
+		];
 		$mockLogger = $this->createMock( LoggerInterface::class );
-		$mockLogger->expects( $this->once() )
-			->method( 'error' )
-			->willReturnCallback( function ( $msg, $context ) use ( $mwHttpRequest ) {
+		$mockLogger->expects( $this->exactly( 2 ) )
+			->method( 'warning' )
+			->willReturnCallback( function (
+				string $message,
+				array $context
+			) use ( &$expectedWarnings )  {
 				$this->assertSame(
-					'Got JSON data from IPoid missing the requested IP while checking {ip} for {caller}', $msg
+					array_shift( $expectedWarnings ),
+					$message
 				);
-				// Check that the caller is specified, but ignore it's value as it may change
-				$this->assertArrayHasKey( 'caller', $context );
-				unset( $context['caller'] );
-				$this->assertArrayEquals(
-					[ 'ip' => '1.2.3.4', 'response' => $mwHttpRequest->getContent() ], $context, false, true
-				);
+				$this->assertArrayHasKey( 'ip', $context );
+				$this->assertSame( '1.2.3.4', $context['ip'] );
 			} );
-
 		$this->setLogger( 'IPReputation', $mockLogger );
+
 		$this->assertNull(
-			$this->getObjectUnderTest()->getIPoidDataForIp( '1.2.3.4', __METHOD__ ),
-			'Should return null when IPoid returns malformed response (service error)'
+			$this->getObjectUnderTest()->getIPoidDataForIp(
+				'1.2.3.4', __METHOD__
+			),
+			'Should return null when IPoid returns 500 error (no cached data available)'
 		);
-		// Timing is not observed when fetcher returns false (service unavailable/malformed data)
+		// Timing is not observed when fetcher returns false (service unavailable)
 		$this->assertTimingNotObserved();
 	}
 
@@ -239,57 +219,6 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->assertTimingNotObserved();
 	}
 
-	public function testGetIPoidDataForIpWhenIPoidHasNoMatch() {
-		// Mock the IPoid returns a response with a HTTP status code of 404,
-		// indicating that the IP was not found in the dataset.
-		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
-		$status = new StatusValue();
-		$status->setOK( false );
-		$mwHttpRequest->method( 'execute' )
-			->willReturn( $status );
-		$mwHttpRequest->method( 'getStatus' )
-			->willReturn( 404 );
-		$this->installMockHttp( $mwHttpRequest );
-
-		// Expect no logs if the IP is not known to IPoid
-		$mockLogger = $this->createNoOpMock( LoggerInterface::class );
-
-		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
-				'1.2.3.4', __METHOD__
-			),
-			'Should return null if IP was not present in response from IPoid'
-		);
-		$this->assertTimingObserved( __METHOD__ );
-	}
-
-	public function testGetIPoidDataForIpOnArrayResponse() {
-		// Mock IPoid returning a valid response with IPReputation data
-		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
-		$status = new StatusValue();
-		$status->setOK( true );
-		$mwHttpRequest->method( 'execute' )
-			->willReturn( $status );
-		$mwHttpRequest->method( 'getContent' )
-			->willReturn( json_encode( [ '1.2.3.4' => [
-				'risks' => [ 'TUNNEL' ],
-				'tunnels' => [ 'PROXY' ]
-			] ] ) );
-		$this->installMockHttp( $mwHttpRequest );
-
-		$this->assertArrayEquals(
-			IPoidResponse::newFromArray( [
-				'risks' => [ 'TUNNEL' ],
-				'tunnels' => [ 'PROXY' ]
-			] )->jsonSerialize(),
-			$this->getObjectUnderTest()->getIPoidDataForIp(
-				'1.2.3.4', __METHOD__
-			)->jsonSerialize(),
-			'Should return array from IPoid if response is valid and the IP is known to IPoid'
-		);
-		$this->assertTimingObserved( __METHOD__ );
-	}
-
 	public function testGetIPoidDataForIpWhenOpenSearchIPoidHasNoMatch() {
 		$this->overrideConfigValue( 'IPReputationDataProvider', 'opensearch_ipoid' );
 		$mwHttpRequest = $this->createMock( MWHttpRequest::class );
@@ -308,10 +237,10 @@ class IPReputationIPoidDataLookupTest extends MediaWikiIntegrationTestCase {
 		$this->installMockHttp( $mwHttpRequest );
 
 		// Expect no logs if the IP is not known to IPoid
-		$mockLogger = $this->createNoOpMock( LoggerInterface::class );
+		$this->setLogger( 'IPReputation', $this->createNoOpMock( LoggerInterface::class ) );
 
 		$this->assertNull(
-			$this->getObjectUnderTest( $mockLogger )->getIPoidDataForIp(
+			$this->getObjectUnderTest()->getIPoidDataForIp(
 				'1.2.3.4', __METHOD__
 			),
 			'Should return null if IP was not present in response from IPoid'
