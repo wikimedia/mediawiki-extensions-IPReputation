@@ -21,6 +21,8 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$mockResponse->method( 'getProxies' )->willReturn( [ 'Cloudflare' ] );
 		$mockResponse->method( 'getBehaviors' )->willReturn( [ 'CRAWLER' ] );
 		$mockResponse->method( 'getCountry' )->willReturn( 'US' );
+		$mockResponse->method( 'getTagMetadataCategories' )->willReturn( [ 'TAG-1', 'TAG-2' ] );
+		$mockResponse->method( 'getOrganization' )->willReturn( 'TEST' );
 
 		$mockLookup = $this->createMock( IPReputationIPoidDataLookup::class );
 		$mockLookup->method( 'getIPoidDataForIp' )
@@ -42,6 +44,8 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$this->assertEquals( [ 'Cloudflare' ], $context['ip_reputation_proxies'] );
 		$this->assertEquals( [ 'CRAWLER' ], $context['ip_reputation_behaviors'] );
 		$this->assertEquals( 'US', $context['ip_reputation_country'] );
+		$this->assertEquals( 'TEST', $context['ip_reputation_organization'] );
+		$this->assertEquals( [ 'TAG-1', 'TAG-2' ], $context['ip_reputation_tag_metadata_categories'] );
 	}
 
 	public function testOnGetSecurityLogContext_SkipsEmptyData() {
@@ -70,6 +74,8 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$this->assertArrayNotHasKey( 'ip_reputation_proxies', $context );
 		$this->assertArrayNotHasKey( 'ip_reputation_behaviors', $context );
 		$this->assertArrayNotHasKey( 'ip_reputation_country', $context );
+		$this->assertArrayNotHasKey( 'ip_reputation_organization', $context );
+		$this->assertArrayNotHasKey( 'ip_reputation_tag_metadata_categories', $context );
 	}
 
 	public function testOnGetSecurityLogContext_HandlesNullResponse() {
@@ -81,6 +87,17 @@ class GetSecurityLogContextHandlerTest extends MediaWikiUnitTestCase {
 		$handler->enableHookHandlerForTest();
 		$context = [ 'existing' => 'preserved' ];
 		$info = [ 'request' => $mockRequest ];
+
+		$handler->onGetSecurityLogContext( $info, $context );
+
+		$this->assertSame( [ 'existing' => 'preserved' ], $context );
+	}
+
+	public function testOnSecurityLogContext_DoesNothingInTestsWhenNotEnabled(): void {
+		$handler = new GetSecurityLogContextHandler( $this->createNoOpMock( IPReputationIPoidDataLookup::class ) );
+
+		$context = [ 'existing' => 'preserved' ];
+		$info = [ 'request' => $this->createMock( WebRequest::class ) ];
 
 		$handler->onGetSecurityLogContext( $info, $context );
 
