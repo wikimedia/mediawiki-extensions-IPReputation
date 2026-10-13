@@ -20,7 +20,7 @@ class IPReputationIPoidDataLookup {
 	/**
 	 * Cache TTL in seconds (1 hour).
 	 *
-	 * IPoid data is refreshed every ~12 hours. One hour allows IPs to get evicted
+	 * IPoid source data is refreshed every ~12 hours. One hour allows IPs to get evicted
 	 * from the cache relatively quickly, while ensuring reasonable freshness of data.
 	 */
 	private const CACHE_TTL = WANObjectCache::TTL_HOUR;
@@ -82,8 +82,7 @@ class IPReputationIPoidDataLookup {
 				return $ipoidData;
 			},
 			[
-				'staleTTL' => self::STALE_STORE_TTL,
-				'lockTSE' => $this->cache::TTL_HOUR,
+				'lockTSE' => self::STALE_STORE_TTL,
 			]
 		);
 
