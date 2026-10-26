@@ -4,5 +4,12 @@
 			"شاه زمان پټان"
 		]
 	},
-	"ipreputation-desc": "د وېبپتې پېژند مالوماتو د راوړلو، ننوتلو، او پلي کولو لپاره لاسرسی چمتو کټل."
+	"ipreputation-desc": "د وېبپتې پېژند مالوماتو د راوړلو، ننوتلو، او پلي کولو لپاره لاسرسی چمتو کول.",
+	"ipreputation-blocked-ip-reputation": "هغه وېب‌پته چې تاسو يې اوس کاروئ پرې بنديز لگېدلی دی، ځکه چې باور کېږي چې په دې وروستيو کې د ناوړه موخو لپاره کارول شوې ده.",
+	"abusefilter-edit-builder-vars-ip-reputation-tunnel-operators": "د تونل چلوونکو لړليک چې د کارن له‌خوا کارول شوې وېب‌پتې سره تړاو لري ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-risk-types": "د خطرونو لړليک چې د کارن له‌خوا کارول شوې وېب‌پتې سره تړاو لري ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-proxies": "د استازولۍ د چوپړونو لړليک چې د کارن له‌خوا کارول شوې وېب‌پتې سره تړاو لري ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-behaviors": "د چلندلارو لړليک چې د کارن له‌خوا کارول شوې وېب‌پتې سره تړاو لري ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-client-count": "د غوښتندويو شمېر چې د کارن له‌خوا کارول شوې وېب‌پتې سره تړاو لري ($1)",
+	"abusefilter-edit-builder-vars-ip-reputation-ipoid-known": "ايا هغه وېبپته چې د کارن له‌خوا کارېږي د IPoid چوپړ له‌خوا پېژندل کېږي ($1)"
 }
